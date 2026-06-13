@@ -1,0 +1,221 @@
+version: 0.1.0
+name: agent_policy_schema
+kind: conceptual_schema
+required_top_level_fields:
+  - agent_profile
+  - instruction_hierarchy
+  - planning
+  - tools
+  - safety
+  - verification
+  - user_interaction
+agent_profile:
+  required:
+    - name
+    - role
+    - domains
+  fields:
+    name:
+      type: string
+    role:
+      type: string
+    domains:
+      type: list[string]
+    audience:
+      type: string
+    communication:
+      type: object
+      fields:
+        language:
+          type: enum
+          values:
+            - same_as_user
+            - english
+            - chinese
+            - configured
+        progress_updates:
+          type: enum
+          values:
+            - none
+            - major_steps_only
+            - periodic
+instruction_hierarchy:
+  required:
+    - priority
+    - trust_domains
+  fields:
+    priority:
+      type: list[string]
+      recommended_order:
+        - system
+        - developer
+        - organization
+        - workspace
+        - user
+        - trusted_tool_observation
+        - untrusted_content
+    trust_domains:
+      type: map
+      required_domains:
+        - trusted_instruction
+        - trusted_tool_observation
+        - untrusted_content
+planning:
+  required:
+    - strategy
+    - stop_conditions
+  fields:
+    strategy:
+      type: enum
+      values:
+        - reactive
+        - planner_executor
+        - autonomous_loop
+    require_plan_when:
+      type: list[string]
+    max_iterations:
+      type: integer
+      default: 20
+    max_repair_iterations:
+      type: integer
+      default: 3
+    stop_conditions:
+      type: list[string]
+tools:
+  required:
+    - manifests
+    - routing
+  fields:
+    manifests:
+      type: list[tool_manifest]
+    routing:
+      type: object
+      fields:
+        unknown_tool:
+          type: enum
+          values: [deny, ask, allow]
+        tool_preference_order:
+          type: list[string]
+tool_manifest:
+  required:
+    - name
+    - category
+    - default_risk
+    - side_effects
+  fields:
+    name:
+      type: string
+    category:
+      type: enum
+      values:
+        - search
+        - file_read
+        - file_write
+        - file_delete
+        - shell
+        - database
+        - git
+        - browser
+        - deployment
+        - secrets
+        - memory
+        - external_communication
+    default_risk:
+      type: enum
+      values:
+        - none
+        - low
+        - medium
+        - high
+        - critical
+    side_effects:
+      type: list[string]
+    approval_required:
+      type: boolean
+safety:
+  required:
+    - prompt_disclosure
+    - secrets
+    - destructive_ops
+    - untrusted_content
+  fields:
+    prompt_disclosure:
+      type: object
+      fields:
+        action:
+          type: enum
+          values: [refuse, allow_summary_only]
+    secrets:
+      type: object
+      fields:
+        reveal:
+          type: enum
+          values: [never, user_approved_only]
+        redaction:
+          type: enum
+          values: [required, optional]
+    destructive_ops:
+      type: object
+      fields:
+        default_action:
+          type: enum
+          values: [require_explicit_approval, deny]
+    untrusted_content:
+      type: object
+      fields:
+        executable_as_instruction:
+          type: boolean
+          must_be: false
+        allowed_operations:
+          type: list[string]
+verification:
+  required:
+    - coding
+    - research
+  fields:
+    coding:
+      type: object
+      fields:
+        require_context_before_edit:
+          type: boolean
+        require_tests_if_available:
+          type: boolean
+        require_lint_if_available:
+          type: boolean
+        allow_skip_with_reason:
+          type: boolean
+    research:
+      type: object
+      fields:
+        require_primary_sources:
+          type: boolean
+        require_citations:
+          type: boolean
+        freshness_required_for_current_facts:
+          type: boolean
+user_interaction:
+  required:
+    - ask_user_when
+    - avoid_asking_when
+  fields:
+    ask_user_when:
+      type: list[string]
+    avoid_asking_when:
+      type: list[string]
+compilation_targets:
+  - system_prompt
+  - runtime_policy
+  - tool_router_policy
+  - approval_gate
+  - sandbox_policy
+  - eval_suite
+  - audit_schema
+validation_rules:
+  - every_tool_must_have_category
+  - every_tool_must_have_default_risk
+  - high_risk_tools_require_approval_rule
+  - critical_risk_tools_default_to_deny
+  - untrusted_content_must_not_be_executable
+  - secret_policy_must_include_redaction
+  - coding_policy_should_define_verification_gate
+  - critical_safety_rules_must_have_eval_cases
