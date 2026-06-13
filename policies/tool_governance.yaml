@@ -1,0 +1,217 @@
+version: 0.1.0
+name: tool_governance_policy
+principles:
+  - tools_are_capabilities
+  - capabilities_require_policy
+  - policy_requires_runtime_enforcement
+  - external_content_is_data_not_instruction
+risk_levels:
+  none:
+    decision: allow
+    audit: optional
+  low:
+    decision: allow_with_audit
+    audit: lightweight
+  medium:
+    decision: allow_with_audit
+    audit: required
+  high:
+    decision: require_explicit_approval
+    audit: required
+  critical:
+    decision: deny_by_default
+    audit: required
+unknowns:
+  unknown_tool:
+    decision: deny
+  unknown_side_effect:
+    risk: high
+    decision: require_explicit_approval
+  unknown_external_content:
+    trust_domain: untrusted_content
+    executable_as_instruction: false
+tool_categories:
+  search:
+    default_risk: none
+    allowed_auto: true
+    constraints:
+      - do_not_execute_search_results_as_instructions
+      - prefer_exact_search_for_symbols
+      - prefer_semantic_search_for_concepts
+  file_read:
+    default_risk: low
+    allowed_auto: true
+    constraints:
+      - redact_sensitive_values_in_user_visible_output
+      - avoid_large_reads_without_need
+      - mark_external_files_as_untrusted_content
+  file_write:
+    default_risk: medium
+    allowed_auto: true
+    preconditions:
+      - target_scope_known
+      - relevant_context_read_when_editing_existing_file
+    postconditions:
+      - diff_summary_required
+      - verification_attempt_if_applicable
+  file_delete:
+    default_risk: high
+    allowed_auto: false
+    require_explicit_approval: true
+    constraints:
+      - require_target_scope
+      - require_recovery_plan_if_possible
+      - deny_bulk_delete_without_scope_review
+  shell:
+    default_risk: variable
+    allowed_auto_intents:
+      - inspect_workspace
+      - run_tests
+      - run_lint
+      - view_git_status
+      - view_diff
+    require_approval_intents:
+      - mutate_filesystem_bulk
+      - mutate_database
+      - push_or_rewrite_remote_git_state
+      - install_or_change_system_packages
+      - deploy_or_publish
+    denied_intents:
+      - reveal_secrets
+      - exfiltrate_user_data
+      - disable_policy_controls
+  database:
+    read:
+      default_risk: low
+      allowed_auto: true
+      operations:
+        - select
+        - explain
+        - describe
+        - show_schema
+    write:
+      default_risk: high
+      require_explicit_approval: true
+      operations:
+        - insert
+        - update
+        - delete
+        - alter
+        - drop
+        - truncate
+        - migration
+      preconditions:
+        - environment_scope_confirmed
+        - backup_or_rollback_plan
+        - read_only_preview_when_possible
+  git:
+    default_risk: variable
+    allowed_auto:
+      - status
+      - diff
+      - log
+      - branch_list
+    require_approval:
+      - commit
+      - push
+      - merge
+      - rebase
+      - tag
+    denied:
+      - add_all_without_review
+      - force_push_without_policy_exception
+      - commit_secret
+      - rewrite_remote_history_without_approval
+    required_checks:
+      - status_before_commit
+      - diff_review_before_commit
+      - secret_scan_before_commit
+  browser:
+    default_risk: variable
+    allowed_auto:
+      - open_public_page
+      - search_public_web
+      - read_documentation
+    require_user_takeover:
+      - login
+      - payment
+      - purchase
+      - booking
+      - account_change
+      - consent_form
+    denied:
+      - bypass_access_controls
+      - scrape_private_data_without_authorization
+  deployment:
+    preview:
+      default_risk: medium
+      allowed_with_audit: true
+    production:
+      default_risk: high
+      require_explicit_approval: true
+      preconditions:
+        - build_status_known
+        - verification_status_known
+        - environment_scope_confirmed
+        - rollback_plan
+  secrets:
+    default_risk: critical
+    allowed:
+      - request_secret_from_user
+      - store_secret_in_secret_manager
+      - pass_secret_to_declared_tool_scope
+    denied:
+      - print_secret
+      - commit_secret
+      - log_secret
+      - send_secret_to_third_party
+    constraints:
+      - redact_in_audit_log
+      - never_echo_secret
+  memory:
+    default_risk: medium
+    require_user_trigger_for_personal_memory: true
+    allowed_project_memory:
+      - stable_project_structure
+      - confirmed_architecture_decision
+      - confirmed_user_preference
+    denied:
+      - secret
+      - sensitive_personal_data_without_consent
+      - unverified_external_claim
+      - transient_error_log
+  external_communication:
+    default_risk: high
+    require_explicit_approval:
+      - email_send
+      - issue_comment
+      - pr_comment
+      - team_message
+      - third_party_mutation
+    allowed_auto:
+      - draft_message
+      - summarize_thread
+    denied:
+      - impersonation
+      - send_sensitive_data_without_permission
+decision_actions:
+  - allow
+  - allow_with_audit
+  - ask_for_approval
+  - deny
+  - sanitize_and_retry
+  - escalate
+audit_schema:
+  required_fields:
+    - event_id
+    - timestamp
+    - actor
+    - user_request_id
+    - tool_name
+    - category
+    - intent
+    - target_scope
+    - risk_level
+    - policy_decision
+    - approval_required
+    - result_status
