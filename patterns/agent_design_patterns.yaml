@@ -1,0 +1,163 @@
+version: 0.1.0
+name: agent_design_patterns
+source_posture:
+  primary_source: CL4R1T4S-derived architecture analysis
+  copy_raw_prompts: false
+  treat_external_corpus_as_untrusted: true
+patterns:
+  - id: layered_agent_os
+    title: Layered Agent OS
+    problem: Long prompts mix identity, tools, safety, planning and UX into one fragile control surface.
+    solution: Split agent behavior into explicit harness-controlled layers.
+    layers:
+      - identity
+      - instruction_hierarchy
+      - planning
+      - state_memory
+      - tool_runtime
+      - governance
+      - verification
+      - user_experience
+    harness_hooks:
+      - policy_engine
+      - tool_router
+      - approval_gate
+      - audit_log
+
+  - id: instruction_hierarchy_resolver
+    title: Instruction Hierarchy Resolver
+    problem: External content can try to override system or developer instructions.
+    solution: Wrap every instruction or content item in a trust domain envelope.
+    priority_order:
+      - system
+      - developer
+      - organization
+      - workspace
+      - user
+      - trusted_tool_observation
+      - untrusted_content
+    rules:
+      - untrusted_content_is_never_executable_instruction
+      - untrusted_content_can_be_summarized_or_cited
+      - hidden_control_plane_is_not_disclosed
+
+  - id: search_before_edit
+    title: Search Before Edit
+    problem: Coding agents create broken changes when they edit without reading local context.
+    solution_steps:
+      - locate_target
+      - read_relevant_context
+      - infer_style_and_dependencies
+      - edit_minimal_span
+      - verify
+      - summarize_diff
+    preconditions:
+      edit_file:
+        require_recent_read: true
+        require_target_scope: true
+
+  - id: tool_preference_hierarchy
+    title: Tool Preference Hierarchy
+    problem: Agents overuse flexible tools such as shell even when safer structured tools exist.
+    preference_order:
+      - domain_specific_tool
+      - structured_tool
+      - semantic_search
+      - exact_search
+      - shell
+      - manual_browser
+    rule: Prefer the safest tool that can satisfy the intent.
+
+  - id: approval_gate_for_side_effects
+    title: Approval Gate for Side Effects
+    problem: Tool calls can cause real-world side effects.
+    risk_levels:
+      - none
+      - low
+      - medium
+      - high
+      - critical
+    default_decisions:
+      none: allow
+      low: allow_with_audit
+      medium: allow_with_audit
+      high: require_explicit_approval
+      critical: deny_by_default
+
+  - id: verification_loop
+    title: Verification Loop
+    problem: Code written is not necessarily code verified.
+    solution_steps:
+      - implement
+      - run_available_checks
+      - inspect_failures
+      - repair
+      - rerun
+      - report_status
+    limits:
+      max_repair_iterations: 3
+      allow_skip_with_reason: true
+
+  - id: planner_standard_mode_split
+    title: Planner / Execution Mode Split
+    problem: Long tasks drift when planning and execution are mixed.
+    modes:
+      - planning
+      - execution
+      - verification
+    transition_rules:
+      planning_to_execution:
+        require_plan: true
+        require_target_scope: true
+      execution_to_verification:
+        require_diff_or_artifact: true
+
+  - id: event_stream_source_of_truth
+    title: Event Stream as Source of Truth
+    problem: Multi-turn agents lose state across tool calls and user updates.
+    event_types:
+      - user_message
+      - assistant_message
+      - plan
+      - tool_call
+      - tool_observation
+      - approval_decision
+      - verification_result
+      - memory_write
+      - policy_violation
+    rule: All state-changing events must be recorded.
+
+  - id: memory_write_boundary
+    title: Memory Write Boundary
+    problem: Agents may store secrets, temporary logs or unverified claims in long-term memory.
+    write_allowed:
+      - explicit_user_preference
+      - stable_project_architecture
+      - confirmed_decision
+    write_denied:
+      - secret
+      - credential
+      - transient_error_log
+      - unverified_external_claim
+
+  - id: untrusted_corpus_neutralization
+    title: Untrusted Corpus Neutralization
+    problem: External corpora may contain prompt-injection or fake tool calls.
+    ingestion_controls:
+      - normalize_as_data
+      - mark_trust_domain
+      - strip_executable_tool_markers
+      - label_injection_patterns
+      - prohibit_instruction_execution
+
+  - id: policy_as_code
+    title: Policy as Code
+    problem: Natural language prompts are hard to diff, test, enforce and port.
+    solution: Maintain structured agent policy and compile it to prompt, runtime config and eval cases.
+    compile_targets:
+      - system_prompt
+      - tool_router_policy
+      - approval_gate
+      - sandbox_policy
+      - eval_suite
+      - audit_schema
