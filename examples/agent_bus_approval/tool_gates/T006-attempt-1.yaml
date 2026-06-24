@@ -1,0 +1,131 @@
+version: 0.1.0
+kind: tool_gate_report
+task_id: T006-approval-record
+objective_ref: T006-approval-record#objective
+attempt: 1
+actor: executor
+source: route_tool_request
+summary:
+  total: 3
+  allow: 1
+  approval_required: 1
+  deny: 1
+  result_status: not_executed
+decisions:
+  - request_id: TR-read
+    request:
+      tool_name: read_file
+      intent: inspect_workspace
+      target_scope: repository
+      side_effects: []
+      actor: executor
+    decision:
+      tool_name: read_file
+      category: file_read
+      intent: inspect_workspace
+      target_scope: repository
+      risk_level: low
+      decision: allow
+      approval_required: false
+      audit_required: true
+      reason: low-risk file_read is allowed with audit
+      policy_source:
+        tool_manifest: agent_policy.tools.manifests[name=read_file]
+        governance_category: policies/tool_governance.yaml.tool_categories.file_read
+      audit_fields:
+        event_id: pending
+        timestamp: pending
+        actor: executor
+        user_request_id: unknown
+        tool_name: read_file
+        category: file_read
+        intent: inspect_workspace
+        target_scope: repository
+        risk_level: low
+        policy_decision: allow
+        approval_required: false
+        result_status: not_executed
+    gate:
+      execution_allowed_by_policy: true
+      requires_approval: false
+      blocked_by_policy: false
+      result_status: not_executed
+  - request_id: TR-approve-delete
+    request:
+      tool_name: delete_file
+      intent: delete_file
+      target_scope: repository
+      side_effects:
+        - data_loss
+      actor: executor
+    decision:
+      tool_name: delete_file
+      category: file_delete
+      intent: delete_file
+      target_scope: repository
+      risk_level: high
+      decision: approval_required
+      approval_required: true
+      audit_required: true
+      reason: file_delete requires approval
+      policy_source:
+        tool_manifest: agent_policy.tools.manifests[name=delete_file]
+        governance_category: policies/tool_governance.yaml.tool_categories.file_delete
+      audit_fields:
+        event_id: pending
+        timestamp: pending
+        actor: executor
+        user_request_id: unknown
+        tool_name: delete_file
+        category: file_delete
+        intent: delete_file
+        target_scope: repository
+        risk_level: high
+        policy_decision: approval_required
+        approval_required: true
+        result_status: not_executed
+    gate:
+      execution_allowed_by_policy: false
+      requires_approval: true
+      blocked_by_policy: false
+      result_status: not_executed
+  - request_id: TR-deny-unknown
+    request:
+      tool_name: mystery_shell
+      category: shell
+      intent: run_tests
+      target_scope: repository
+      side_effects:
+        - local_process_execution
+      actor: executor
+    decision:
+      tool_name: mystery_shell
+      category: shell
+      intent: run_tests
+      target_scope: repository
+      risk_level: critical
+      decision: deny
+      approval_required: false
+      audit_required: true
+      reason: unknown tool mystery_shell follows unknown_tool policy
+      policy_source:
+        tool_manifest: none
+        governance_category: policies/tool_governance.yaml.unknowns.unknown_tool
+      audit_fields:
+        event_id: pending
+        timestamp: pending
+        actor: executor
+        user_request_id: unknown
+        tool_name: mystery_shell
+        category: shell
+        intent: run_tests
+        target_scope: repository
+        risk_level: critical
+        policy_decision: deny
+        approval_required: false
+        result_status: not_executed
+    gate:
+      execution_allowed_by_policy: false
+      requires_approval: false
+      blocked_by_policy: true
+      result_status: not_executed

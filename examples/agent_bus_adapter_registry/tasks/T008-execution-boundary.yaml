@@ -1,0 +1,56 @@
+id: T008-execution-boundary
+title: Validate execution handoff boundary without execution
+owner: executor
+status: completed
+objective:
+  ref: T008-execution-boundary#objective
+  statement: Prove that validated preflight decisions can become side-effect-free execution handoff artifacts only when context, digests, and adapter support are intact.
+acceptance_criteria:
+  - Ledger contains the normal assigned to completed lifecycle.
+  - Executor evidence references a side-effect-free tool gate report from executor_done only.
+  - Designer review references one approval record, one preflight report, and one execution handoff report.
+  - Handoff report includes ready, approved-ready, unsupported adapter, blocked missing approval, and blocked by policy cases.
+  - Every handoff result remains not_executed.
+constraints:
+  - Do not execute tools.
+  - Do not call a runtime adapter.
+  - Do not modify, import, invoke, or depend on a /pi execution-plane adapter.
+  - Do not add daemon behavior.
+  - Do not add scheduler or watcher behavior.
+  - Do not add task mutation CLI.
+  - Do not add lifecycle statuses.
+verification:
+  commands:
+    - PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus_handoff
+    - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+retry_policy:
+  max_attempts: 3
+  require_new_failure_hypothesis: true
+failure_classes:
+  allowed:
+    - verification_failed
+    - baseline_drift
+    - policy_violation
+    - missing_evidence
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+  automatic_retry:
+    - verification_failed
+    - baseline_drift
+    - missing_evidence
+  escalate:
+    - policy_violation
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+audit:
+  ledger_path: ledger.jsonl
+  evidence_dir: evidence
+  review_dir: reviews
+  tool_gate_dir: tool_gates
+  approval_dir: approvals
+  preflight_dir: preflight
+  adapter_dir: adapters
+  handoff_dir: handoffs
+  objective_ref: T008-execution-boundary#objective

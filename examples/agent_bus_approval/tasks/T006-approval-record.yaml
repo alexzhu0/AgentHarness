@@ -1,0 +1,51 @@
+id: T006-approval-record
+title: Validate approval record binding for tool gate reports
+owner: executor
+status: completed
+objective:
+  ref: T006-approval-record#objective
+  statement: Prove that a human approval record can bind only to an approval-required tool gate entry without executing the tool.
+acceptance_criteria:
+  - Ledger contains the normal assigned to completed lifecycle.
+  - Executor evidence references a side-effect-free tool gate report from executor_done only.
+  - Designer review references an approval record for one approval_required request.
+  - Approval record binds task_id, objective_ref, attempt, tool_gate_report_path, request_id, and decision_digest.
+  - Approval record remains not_executed and does not mutate task lifecycle.
+constraints:
+  - Do not execute tools.
+  - Do not add daemon behavior.
+  - Do not add scheduler behavior.
+  - Do not add task mutation CLI.
+  - Do not add lifecycle statuses.
+verification:
+  commands:
+    - PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus_approval
+    - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+retry_policy:
+  max_attempts: 3
+  require_new_failure_hypothesis: true
+failure_classes:
+  allowed:
+    - verification_failed
+    - baseline_drift
+    - policy_violation
+    - missing_evidence
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+  automatic_retry:
+    - verification_failed
+    - baseline_drift
+    - missing_evidence
+  escalate:
+    - policy_violation
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+audit:
+  ledger_path: ledger.jsonl
+  evidence_dir: evidence
+  review_dir: reviews
+  tool_gate_dir: tool_gates
+  approval_dir: approvals
+  objective_ref: T006-approval-record#objective

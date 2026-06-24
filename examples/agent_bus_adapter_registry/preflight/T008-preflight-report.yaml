@@ -1,0 +1,100 @@
+version: 0.1.0
+kind: execution_preflight_report
+task_id: T008-execution-boundary
+objective_ref: T008-execution-boundary#objective
+attempt: 1
+source: build_execution_preflight_decision
+tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+summary:
+  total: 5
+  execution_allowed: 3
+  blocked: 2
+  invalid: 0
+  result_status: not_executed
+decisions:
+  - version: 0.1.0
+    kind: execution_preflight_decision
+    request_id: TR-read
+    result_status: not_executed
+    decision: ready_without_approval
+    execution_allowed: true
+    reason: Tool gate policy allows this request without approval.
+    subject:
+      tool_gate_decision: allow
+      tool_gate_digest: sha256:f80c26a41e2681636fcb02757432d6379a7af7b39883db8ed9f2139fe3a35398
+      approval_decision: null
+      approval_digest: null
+    scope:
+      tool_name: read_file
+      category: file_read
+      intent: inspect_workspace
+      target_scope: repository
+  - version: 0.1.0
+    kind: execution_preflight_decision
+    request_id: TR-approve-delete
+    result_status: not_executed
+    decision: ready_with_approval
+    execution_allowed: true
+    reason: Valid user approval record is bound to this approval-required request.
+    subject:
+      tool_gate_decision: approval_required
+      tool_gate_digest: sha256:85118d280f552a5a054c16eff9cba7a010cc04e97105729c0de255f25c34c8f4
+      approval_decision: approved
+      approval_digest: sha256:554ffc3a7c8dd0cb1ff46df011d8144bf2fa673d315e870d699c4cbba11f164c
+    scope:
+      tool_name: delete_file
+      category: file_delete
+      intent: delete_file
+      target_scope: repository
+  - version: 0.1.0
+    kind: execution_preflight_decision
+    request_id: TR-read-unsupported-intent
+    result_status: not_executed
+    decision: ready_without_approval
+    execution_allowed: true
+    reason: Tool gate policy allows this request without approval.
+    subject:
+      tool_gate_decision: allow
+      tool_gate_digest: sha256:d231645493d551c5fb2042e9be99cb40b5679547ee893a7fbd63c136a2bd07bd
+      approval_decision: null
+      approval_digest: null
+    scope:
+      tool_name: read_file
+      category: file_read
+      intent: inspect_config
+      target_scope: repository
+  - version: 0.1.0
+    kind: execution_preflight_decision
+    request_id: TR-missing-approval-delete
+    result_status: not_executed
+    decision: blocked_missing_approval
+    execution_allowed: false
+    reason: Approval-required request has no approval record.
+    subject:
+      tool_gate_decision: approval_required
+      tool_gate_digest: sha256:fd35c0f4cac70ac1d4d493d9bbcd463e47e04da96a7d2539317dc3b3a686ab7b
+      approval_decision: null
+      approval_digest: null
+    scope:
+      tool_name: delete_file
+      category: file_delete
+      intent: delete_file
+      target_scope: repository
+  - version: 0.1.0
+    kind: execution_preflight_decision
+    request_id: TR-deny-unknown
+    result_status: not_executed
+    decision: blocked_by_policy
+    execution_allowed: false
+    reason: Tool gate policy denied this request.
+    subject:
+      tool_gate_decision: deny
+      tool_gate_digest: sha256:9a288775a6c53b32d47dec7c28eded1b295980e4a1455396b15c34cf3f6bf52d
+      approval_decision: null
+      approval_digest: null
+    scope:
+      tool_name: mystery_shell
+      category: shell
+      intent: run_tests
+      target_scope: repository
+

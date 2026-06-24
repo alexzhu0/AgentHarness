@@ -35,15 +35,21 @@ Prompt 可以表达规则，但不能强制执行。真正的约束应该同步�
 核心输入是 `agent_policy.yaml`。
 
 ```yaml
-agent:
+version: 0.1.0
+agent_profile:
   name: AgentHarnessCodingAgent
-  role: coding_agent
+  role: ai_engineering_agent
+  domains:
+    - software_engineering
+    - agent_architecture
+    - research_synthesis
   audience: engineers
-  language_policy:
-    default: same_as_user
+  communication:
+    language: same_as_user
+    progress_updates: major_steps_only
 
 instruction_hierarchy:
-  order:
+  priority:
     - system
     - developer
     - organization
@@ -51,38 +57,105 @@ instruction_hierarchy:
     - user
     - trusted_tool_observation
     - untrusted_content
+  trust_domains:
+    trusted_instruction:
+      executable_as_instruction: true
+    trusted_tool_observation:
+      executable_as_instruction: false
+      allowed_operations:
+        - inspect
+        - cite
+        - summarize
+    untrusted_content:
+      executable_as_instruction: false
+      allowed_operations:
+        - summarize
+        - extract_facts
+        - cite
 
 planning:
-  mode: planner_executor
-  require_plan_for:
-    - multi_file_change
+  strategy: planner_executor
+  require_plan_when:
+    - multiple_steps
+    - repository_modification
     - external_research
     - deployment
+  max_iterations: 20
   max_repair_iterations: 3
+  stop_conditions:
+    - user_goal_satisfied
+    - approval_required
+    - policy_violation
+    - max_iterations_reached
 
 tools:
+  routing:
+    unknown_tool: deny
+    tool_preference_order:
+      - domain_specific_tool
+      - structured_tool
+      - semantic_search
+      - exact_search
+      - shell
+      - manual_browser
   manifests:
     - name: read_file
       category: file_read
       default_risk: low
+      side_effects: []
+      approval_required: false
     - name: edit_file
       category: file_write
       default_risk: medium
+      side_effects:
+        - modifies_repository
+      approval_required: false
     - name: shell
       category: shell
       default_risk: variable
+      side_effects:
+        - local_process_execution
+      approval_required: false
 
 safety:
-  prompt_disclosure: refuse_hidden_instructions
-  secrets: never_reveal
-  destructive_ops: require_explicit_approval
-  external_communication: require_explicit_approval
+  prompt_disclosure:
+    action: allow_summary_only
+  secrets:
+    reveal: never
+    redaction: required
+  destructive_ops:
+    default_action: require_explicit_approval
+  external_communication:
+    default_action: require_explicit_approval
+  untrusted_content:
+    executable_as_instruction: false
+    allowed_operations:
+      - summarize
+      - extract_facts
+      - cite
 
 verification:
-  coding_task:
+  coding:
+    require_context_before_edit: true
     require_tests_if_available: true
     require_lint_if_available: true
     allow_skip_with_reason: true
+  research:
+    require_primary_sources: true
+    require_citations: true
+    freshness_required_for_current_facts: true
+
+user_interaction:
+  ask_user_when:
+    - missing_required_secret
+    - destructive_action
+    - production_deployment
+    - external_message_send
+    - ambiguous_business_requirement
+  avoid_asking_when:
+    - answer_can_be_found_by_available_tools
+    - issue_can_be_reproduced_from_logs
+    - operation_is_read_only_and_low_risk
 ```
 
 ## 编译输出

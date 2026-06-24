@@ -1,0 +1,618 @@
+version: 0.1.0
+name: loop_task_schema
+kind: conceptual_schema
+required_top_level_fields:
+  - id
+  - title
+  - owner
+  - status
+  - objective
+  - acceptance_criteria
+  - constraints
+  - verification
+  - retry_policy
+  - failure_classes
+  - audit
+allowed_actors:
+  - designer
+  - executor
+  - user
+allowed_statuses:
+  - assigned
+  - executor_done
+  - reviewing
+  - retry_requested
+  - completed
+  - blocked_escalate
+allowed_event_types:
+  - task_assigned
+  - executor_done
+  - designer_review
+  - task_completed
+  - retry_requested
+  - blocked_escalate
+event_type_status:
+  task_assigned: assigned
+  executor_done: executor_done
+  designer_review: reviewing
+  task_completed: completed
+  retry_requested: retry_requested
+  blocked_escalate: blocked_escalate
+event_type_allowed_actors:
+  task_assigned:
+    - designer
+  executor_done:
+    - executor
+  designer_review:
+    - designer
+  task_completed:
+    - designer
+    - user
+  retry_requested:
+    - designer
+  blocked_escalate:
+    - designer
+    - user
+allowed_transitions:
+  assigned:
+    - executor_done
+  executor_done:
+    - reviewing
+  reviewing:
+    - completed
+    - retry_requested
+    - blocked_escalate
+  retry_requested:
+    - executor_done
+terminal_statuses:
+  - completed
+  - blocked_escalate
+review_verdicts:
+  - accepted
+  - retry_requested
+  - blocked_escalate
+retry_policy:
+  max_attempts: 3
+  require_new_failure_hypothesis: true
+failure_classes:
+  allowed:
+    - verification_failed
+    - baseline_drift
+    - policy_violation
+    - missing_evidence
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+  automatic_retry:
+    - verification_failed
+    - baseline_drift
+    - missing_evidence
+  escalate:
+    - policy_violation
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+ledger_event:
+  required:
+    - event_id
+    - ts
+    - task_id
+    - actor
+    - event_type
+    - status
+    - attempt
+    - objective_ref
+    - summary
+  conditional_required:
+    executor_done:
+      - evidence_path
+    completed:
+      - review_path
+    retry_requested:
+      - review_path
+      - failure_class
+      - failure_hypothesis
+    blocked_escalate:
+      - failure_class
+  path_resolution:
+    base: bus_root
+    reject_absolute_outside_bus_root: true
+    reject_parent_traversal_outside_bus_root: true
+  optional:
+    executor_done:
+      - tool_gate_report_path
+    designer_review:
+      - approval_record_paths
+      - preflight_report_path
+      - execution_handoff_report_path
+  forbidden_fields:
+    non_executor_done:
+      - tool_gate_report_path
+    non_designer_review:
+      - approval_record_paths
+      - preflight_report_path
+      - execution_handoff_report_path
+tool_gate_report:
+  kind: tool_gate_report
+  source: route_tool_request
+  validation_inputs:
+    policy_path: loop_policy.yaml.tool_gate_validation.policy_path
+    governance_path: loop_policy.yaml.tool_gate_validation.governance_path
+  decision_vocabulary:
+    - allow
+    - approval_required
+    - deny
+  required_result_status: not_executed
+  gate_mapping:
+    allow:
+      execution_allowed_by_policy: true
+      requires_approval: false
+      blocked_by_policy: false
+    approval_required:
+      execution_allowed_by_policy: false
+      requires_approval: true
+      blocked_by_policy: false
+    deny:
+      execution_allowed_by_policy: false
+      requires_approval: false
+      blocked_by_policy: true
+approval_record:
+  kind: approval_record
+  required_result_status: not_executed
+  allowed_approver_actors:
+    - user
+  allowed_record_decisions:
+    - approved
+    - rejected
+  subject_required:
+    - tool_gate_report_path
+    - request_id
+    - decision_digest
+    - expected_decision
+  required_bindings:
+    - task_id
+    - objective_ref
+    - attempt
+    - tool_gate_report_path
+    - request_id
+    - decision_digest
+  digest_algorithm: sha256
+  digest_subject_fields:
+    - request_id
+    - request
+    - decision
+    - gate
+  valid_tool_gate_decision: approval_required
+  invalid_tool_gate_decisions:
+    - allow
+    - deny
+  path_resolution:
+    base: bus_root
+    reject_absolute_outside_bus_root: true
+    reject_parent_traversal_outside_bus_root: true
+  lifecycle_effect: none
+  execution_effect: none
+execution_preflight_report:
+  kind: execution_preflight_report
+  source: build_execution_preflight_decision
+  required_result_status: not_executed
+  path_resolution:
+    base: bus_root
+    reject_absolute_outside_bus_root: true
+    reject_parent_traversal_outside_bus_root: true
+  required_bindings:
+    - task_id
+    - objective_ref
+    - attempt
+    - tool_gate_report_path
+  decision_vocabulary:
+    - ready_without_approval
+    - ready_with_approval
+    - blocked_missing_approval
+    - blocked_rejected_approval
+    - blocked_by_policy
+    - invalid_subject
+  decision_rules:
+    allow_without_approval: ready_without_approval
+    allow_with_approval: invalid_subject
+    approval_required_without_approval: blocked_missing_approval
+    approval_required_with_approved_record: ready_with_approval
+    approval_required_with_rejected_record: blocked_rejected_approval
+    deny_with_or_without_approval: blocked_by_policy
+  required_decision_fields:
+    - request_id
+    - result_status
+    - decision
+    - execution_allowed
+    - reason
+    - subject
+    - scope
+  subject_fields:
+    - tool_gate_decision
+    - tool_gate_digest
+    - approval_decision
+    - approval_digest
+  scope_fields:
+    - tool_name
+    - category
+    - intent
+    - target_scope
+  lifecycle_effect: none
+  execution_effect: none
+runtime_adapter_spec:
+  kind: runtime_adapter_spec
+  required_fields:
+    - adapter_id
+    - adapter_kind
+    - adapter_version
+    - execution_plane
+    - contract
+    - supports
+    - requirements
+  contract:
+    input: execution_handoff
+    hook: tool_call
+    agentharness_role: control_plane
+    result_contract: future_observation_artifact
+  support_dimensions:
+    - tool_names
+    - categories
+    - intents
+    - target_scopes
+  support_matching:
+    require_all_dimensions: true
+    wildcard_support: deferred
+  required_requirements:
+    require_handoff_ready: true
+    require_not_executed: true
+    require_digest_validation: true
+    reject_unsupported: true
+  lifecycle_effect: none
+  execution_effect: none
+runtime_adapter_registry:
+  kind: runtime_adapter_registry
+  version: 0.1.0
+  required_fields:
+    - version
+    - kind
+    - entries
+  entry_required_fields:
+    - adapter_id
+    - adapter_kind
+    - adapter_version
+    - execution_plane
+    - status
+    - adapter_spec_path
+    - adapter_spec_digest
+  allowed_statuses:
+    - active
+    - deprecated
+    - disabled
+  selectable_status: active
+  selection:
+    exact_adapter_id: true
+    exact_adapter_version: true
+    adapter_version_format: MAJOR.MINOR.PATCH
+    rejected_version_selectors:
+      - 0.1.x
+      - latest
+      - ">=0.1.0"
+      - ^0.1.0
+      - ~0.1.0
+      - "*"
+    wildcard_selection: false
+    version_range_selection: false
+    version_alias_selection: false
+    live_discovery: false
+  digest_algorithm: sha256
+  digest_subject: canonical_full_runtime_adapter_spec
+  path_resolution:
+    base: bus_root
+    reject_absolute_outside_bus_root: true
+    reject_parent_traversal_outside_bus_root: true
+  lifecycle_effect: none
+  execution_effect: none
+execution_handoff_report:
+  kind: execution_handoff_report
+  source: build_execution_handoff
+  required_result_status: not_executed
+  path_resolution:
+    base: bus_root
+    reject_absolute_outside_bus_root: true
+    reject_parent_traversal_outside_bus_root: true
+  required_bindings:
+    - task_id
+    - objective_ref
+    - attempt
+    - tool_gate_report_path
+    - preflight_report_path
+    - adapter_spec_path
+  optional_registry_bindings:
+    - adapter_registry_path
+    - adapter_ref
+  adapter_ref_required_fields:
+    - adapter_id
+    - adapter_version
+  adapter_ref_optional_fields:
+    - adapter_spec_digest
+  adapter_ref_digest_rule: when_present_must_be_sha256_and_match_selected_registry_entry
+  required_summary_fields:
+    - total
+    - handoff_ready
+    - blocked
+    - unsupported
+    - result_status
+  handoff_required_fields:
+    - kind
+    - handoff_id
+    - task_id
+    - objective_ref
+    - attempt
+    - request_id
+    - result_status
+    - source
+    - subject
+    - adapter
+    - control_plane
+    - request
+    - gate
+  subject_fields:
+    - tool_gate_report_path
+    - preflight_report_path
+    - approval_record_path
+    - tool_gate_digest
+    - preflight_digest
+    - approval_digest
+    - expected_preflight_decision
+  request_fields:
+    - tool_name
+    - category
+    - intent
+    - target_scope
+  gate_fields:
+    - handoff_ready
+    - blocked_reason
+    - unsupported_reason
+    - execution_allowed_by_preflight
+    - result_status
+  digest_algorithm: sha256
+  digest_subjects:
+    tool_gate_digest: approval_subject_digest(tool_gate_entry)
+    preflight_digest: canonical_full_preflight_decision
+    approval_digest: canonical_full_approval_record
+  ready_preflight_decisions:
+    - ready_without_approval
+    - ready_with_approval
+  blocked_preflight_decisions:
+    - blocked_missing_approval
+    - blocked_rejected_approval
+    - blocked_by_policy
+    - invalid_subject
+  unsupported_reason: unsupported_by_adapter
+  lifecycle_effect: none
+  execution_effect: none
+handoff_export_package:
+  kind: handoff_export_package
+  source: build_handoff_export_package
+  required_result_status: not_executed
+  output_surface: stdout_json_only
+  required_source:
+    - validated_file_bus
+    - registry_backed_execution_handoff_report
+  summary_fields:
+    - reports
+    - total_handoffs
+    - exported
+    - blocked
+    - unsupported
+    - result_status
+  export_item_kind: handoff_export_item
+  export_item_required_fields:
+    - kind
+    - result_status
+    - handoff_report_path
+    - adapter_registry_path
+    - adapter_spec_path
+    - adapter_ref
+    - handoff_id
+    - task_id
+    - objective_ref
+    - attempt
+    - request_id
+    - handoff_digest
+    - request
+    - gate
+  adapter_ref_required_fields:
+    - adapter_id
+    - adapter_version
+    - adapter_spec_digest
+  ready_only: true
+  excluded_from_exports:
+    - blocked_handoffs
+    - unsupported_handoffs
+  path_policy:
+    bus_relative_only: true
+    absolute_host_paths: false
+  lifecycle_effect: none
+  execution_effect: none
+handoff_export_manifest:
+  kind: handoff_export_manifest
+  source: build_handoff_export_manifest
+  required_result_status: not_executed
+  output_surface: stdout_json_only
+  required_source:
+    - handoff_export_package
+  package_kind: handoff_export_package
+  digest_semantics:
+    json_dumps_sort_keys: true
+    json_dumps_separators: [",", ":"]
+    json_dumps_ensure_ascii: true
+    encoding: utf-8
+    algorithm: sha256
+    prefix: "sha256:"
+  required_fields:
+    - version
+    - kind
+    - source
+    - result_status
+    - package_kind
+    - package_digest
+    - summary
+    - items
+  summary_source: copied_from_export_package
+  item_kind: handoff_export_manifest_item
+  item_source: handoff_export_package.exports
+  item_order: preserve_export_package_order
+  item_required_fields:
+    - kind
+    - result_status
+    - request_id
+    - handoff_id
+    - handoff_digest
+    - export_item_digest
+    - adapter_ref
+  ready_only: true
+  excluded_from_items:
+    - blocked_handoffs
+    - unsupported_handoffs
+  path_policy:
+    absolute_host_paths: false
+  lifecycle_effect: none
+  execution_effect: none
+handoff_manifest_verification_report:
+  kind: handoff_manifest_verification_report
+  source: verify_handoff_export_manifest
+  required_result_status: not_executed
+  output_surface: stdout_json_only
+  required_source:
+    - handoff_export_manifest
+    - current_validated_file_bus
+  comparison_source: regenerated_build_handoff_export_manifest
+  required_fields:
+    - version
+    - kind
+    - source
+    - result_status
+    - ok
+    - package_kind
+    - manifest_kind
+    - expected_package_digest
+    - manifest_package_digest
+    - summary
+    - items
+    - errors
+  summary_fields:
+    - items
+    - matched
+    - mismatched
+    - missing
+    - extra
+    - result_status
+  item_kind: handoff_manifest_verification_item
+  item_required_fields:
+    - kind
+    - result_status
+    - request_id
+    - ok
+    - expected_handoff_digest
+    - manifest_handoff_digest
+    - expected_export_item_digest
+    - manifest_export_item_digest
+  failure_classes:
+    - malformed_json
+    - non_mapping_json
+    - wrong_kind
+    - wrong_source
+    - wrong_package_kind
+    - wrong_result_status
+    - forged_package_digest
+    - forged_export_item_digest
+    - forged_handoff_digest
+    - missing_item
+    - extra_item
+    - reordered_items
+    - stale_manifest
+    - invalid_current_bus
+  lifecycle_effect: none
+  execution_effect: none
+validation_rules:
+  - ledger_jsonl_is_append_only_source_of_truth
+  - executor_evidence_is_data_until_reviewed
+  - event_type_must_be_allowed
+  - event_type_status_must_match
+  - event_actor_must_be_authorized
+  - task_objective_ref_must_match_all_events
+  - evidence_and_review_paths_must_stay_within_bus_root
+  - tool_gate_report_path_allowed_only_on_executor_done
+  - tool_gate_report_path_must_stay_within_bus_root
+  - tool_gate_report_context_must_match_event
+  - tool_gate_report_decisions_must_match_recomputed_tool_decision_fields
+  - tool_gate_report_decisions_must_be_not_executed
+  - tool_gate_report_summary_counts_must_match_decisions
+  - approval_record_paths_allowed_only_on_designer_review
+  - approval_record_paths_must_stay_within_bus_root
+  - approval_record_must_match_same_attempt_tool_gate_report
+  - approval_record_digest_must_match_tool_gate_entry
+  - approval_record_can_bind_only_approval_required_entries
+  - approval_record_approver_actor_must_be_user
+  - approval_record_must_be_not_executed
+  - approval_record_must_not_expand_tool_scope
+  - duplicate_approval_records_for_same_request_are_invalid
+  - preflight_report_path_allowed_only_on_designer_review
+  - preflight_report_path_must_stay_within_bus_root
+  - preflight_report_must_match_same_attempt_tool_gate_report
+  - preflight_report_decisions_must_match_recomputed_preflight_decisions
+  - preflight_report_cannot_upgrade_deny_to_execution_allowed
+  - preflight_report_cannot_pass_approval_required_without_approved_record
+  - preflight_report_rejected_approval_must_block_execution
+  - preflight_report_decisions_must_be_not_executed
+  - preflight_report_scope_must_match_tool_gate_decision
+  - execution_handoff_report_path_allowed_only_on_designer_review
+  - execution_handoff_report_path_must_stay_within_bus_root
+  - execution_handoff_report_must_match_same_attempt_tool_gate_and_preflight
+  - execution_handoff_adapter_spec_path_must_stay_within_bus_root
+  - execution_handoff_report_decisions_must_match_recomputed_handoffs
+  - execution_handoff_report_cannot_upgrade_blocked_preflight_to_ready
+  - execution_handoff_report_cannot_upgrade_unsupported_adapter_to_ready
+  - execution_handoff_report_rejects_missing_context
+  - execution_handoff_report_rejects_duplicate_or_unknown_request_ids
+  - execution_handoff_report_rejects_forged_tool_gate_preflight_or_approval_digest
+  - execution_handoff_report_decisions_must_be_not_executed
+  - runtime_adapter_spec_must_require_all_four_support_dimensions
+  - runtime_adapter_spec_must_not_execute_tools
+  - runtime_adapter_registry_path_must_stay_within_bus_root
+  - runtime_adapter_registry_entries_must_pin_adapter_spec_digest
+  - runtime_adapter_registry_adapter_version_must_be_strict_semver
+  - runtime_adapter_registry_entries_must_have_unique_adapter_id_and_version
+  - runtime_adapter_registry_selected_entry_must_be_active
+  - runtime_adapter_registry_selection_must_be_exact
+  - runtime_adapter_registry_selection_rejects_version_aliases_wildcards_and_ranges
+  - runtime_adapter_registry_adapter_ref_digest_is_optional_but_must_match_when_present
+  - runtime_adapter_registry_binding_must_include_path_and_adapter_ref_together
+  - runtime_adapter_registry_selected_spec_must_match_handoff_adapter_spec_path
+  - handoff_export_package_requires_registry_backed_handoff_reports
+  - handoff_export_package_exports_only_handoff_ready_items
+  - handoff_export_package_excludes_blocked_and_unsupported_items
+  - handoff_export_package_uses_bus_relative_paths_only
+  - handoff_export_package_stdout_json_only
+  - handoff_export_package_must_be_not_executed
+  - handoff_export_manifest_must_be_built_from_export_package
+  - handoff_export_manifest_package_digest_must_match_canonical_export_package
+  - handoff_export_manifest_item_digest_must_match_canonical_export_item
+  - handoff_export_manifest_preserves_export_order
+  - handoff_export_manifest_preserves_handoff_digest
+  - handoff_export_manifest_items_must_be_not_executed
+  - handoff_manifest_verification_must_regenerate_expected_manifest
+  - handoff_manifest_verification_must_compare_full_manifest_object
+  - handoff_manifest_verification_must_check_package_digest
+  - handoff_manifest_verification_must_check_item_order_and_digests
+  - handoff_manifest_verification_must_fail_stale_or_forged_manifests
+  - handoff_manifest_verification_report_must_be_not_executed
+  - evidence_task_and_objective_ref_must_match
+  - review_verdict_must_be_whitelisted
+  - attempts_start_at_one_and_only_advance_after_retry_requested
+  - retries_must_not_exceed_max_attempts
+  - retries_require_new_failure_hypothesis
+  - automatic_retry_classes_escalate_only_after_retry_budget
+  - failure_classes_must_be_allowed
+  - task_final_status_must_match_last_ledger_event

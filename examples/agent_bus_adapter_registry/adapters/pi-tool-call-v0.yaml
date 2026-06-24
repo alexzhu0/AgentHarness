@@ -1,0 +1,30 @@
+version: 0.1.0
+kind: runtime_adapter_spec
+adapter_id: pi-tool-call-v0
+adapter_kind: tool_call_hook
+adapter_version: 0.1.0
+execution_plane: external
+contract:
+  input: execution_handoff
+  hook: tool_call
+  side_effect_owner: adapter
+  agentharness_role: control_plane
+  result_contract: future_observation_artifact
+supports:
+  tool_names:
+    - read_file
+    - delete_file
+  categories:
+    - file_read
+    - file_delete
+  intents:
+    - inspect_workspace
+    - delete_file
+  target_scopes:
+    - repository
+requirements:
+  require_handoff_ready: true
+  require_not_executed: true
+  require_digest_validation: true
+  reject_unsupported: true
+
