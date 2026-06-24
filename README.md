@@ -130,6 +130,8 @@ Runtime architecture: [`docs/06-runtime-architecture.md`](docs/06-runtime-archit
 
 Enterprise positioning and boundary audit: [`docs/07-enterprise-positioning-and-boundary-audit.md`](docs/07-enterprise-positioning-and-boundary-audit.md)
 
+Glossary and product contract: [`docs/08-glossary-and-product-contract.md`](docs/08-glossary-and-product-contract.md)
+
 ## Minimal Executable Loop
 
 AgentHarness includes a small local CLI for keeping the YAML assets honest:
@@ -240,6 +242,7 @@ docs/
   05-loop-file-bus.md
   06-runtime-architecture.md
   07-enterprise-positioning-and-boundary-audit.md
+  08-glossary-and-product-contract.md
 src/
   agentharness/
 tests/

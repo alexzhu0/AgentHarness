@@ -87,9 +87,15 @@ this is an adjacent-category comparison, not a feature-parity table
 - **Integrate later:** connect the AgentHarness evidence contract to selected runtime, governance, auth, or execution-plane systems through explicit adapter specs and registry-backed consumer payloads.
 - **Defer runtime spikes:** keep execution-plane experiments behind the current adapter boundary until the evidence contract, enterprise glossary, and integration criteria are accepted.
 
+The accepted T015 glossary and product contract is
+[`docs/08-glossary-and-product-contract.md`](./08-glossary-and-product-contract.md).
+Future integration and buyer-demo work should cite that glossary before adding
+new runtime-adjacent wording.
+
 ## T015+ recommended next task options
 
-- **T015:** docs-backed glossary/ontology and product contract for terms such as evidence, eligibility, handoff, export, manifest, verification, adapter, and runtime boundary.
+- **T015:** accepted docs-backed glossary/ontology and product contract:
+  [`docs/08-glossary-and-product-contract.md`](./08-glossary-and-product-contract.md).
 - **T016:** source-backed integration strategy for downstream runtime, governance, authorization, and identity layers.
 - **T017:** enterprise audit report examples and buyer-demo narrative showing how a security/platform reviewer reads the evidence chain.
 - **Deferred:** runtime spike only after boundary acceptance and with explicit adapter contracts that preserve the no-execution default.
