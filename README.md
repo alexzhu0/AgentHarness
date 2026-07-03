@@ -132,6 +132,16 @@ Enterprise positioning and boundary audit: [`docs/07-enterprise-positioning-and-
 
 Glossary and product contract: [`docs/08-glossary-and-product-contract.md`](docs/08-glossary-and-product-contract.md)
 
+Source-backed integration strategy: [`docs/09-source-backed-integration-strategy.md`](docs/09-source-backed-integration-strategy.md)
+
+Enterprise audit report and buyer demo: [`docs/10-enterprise-audit-report-and-buyer-demo.md`](docs/10-enterprise-audit-report-and-buyer-demo.md)
+
+Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
+
+Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
+
+End-to-end evidence-chain regression harness: [`tests/test_end_to_end_evidence_chain.py`](tests/test_end_to_end_evidence_chain.py)
+
 ## Minimal Executable Loop
 
 AgentHarness includes a small local CLI for keeping the YAML assets honest:
@@ -153,6 +163,10 @@ AgentHarness includes a small local CLI for keeping the YAML assets honest:
 ./agentharness handoff manifest examples/agent_bus_adapter_registry
 ./agentharness handoff manifest examples/agent_bus_adapter_registry > /tmp/agentharness-manifest.json
 ./agentharness handoff verify-manifest examples/agent_bus_adapter_registry /tmp/agentharness-manifest.json
+./agentharness audit report examples/agent_bus_adapter_registry
+./agentharness audit checklist examples/agent_bus_adapter_registry
+./agentharness audit report examples/agent_bus_adapter_registry > /tmp/agentharness-audit-report.json
+./agentharness audit verify-report examples/agent_bus_adapter_registry /tmp/agentharness-audit-report.json
 ```
 
 The eval command is a mock policy smoke runner. It does not execute a model; it checks whether the current policy contains enforceable controls for the first prompt-injection, prompt-disclosure and secret-handling safety cases.
@@ -180,6 +194,25 @@ regenerates the expected manifest from the current bus, and emits a
 deterministic verification report to stdout on both pass and fail. It is a
 readback check, not a trust or runtime execution surface.
 
+The audit report command composes handoff inspection, registry-backed export,
+and digest manifest evidence into one deterministic enterprise audit JSON
+report. It writes JSON to stdout only, does not call manifest readback without a
+saved manifest path, self-checks the payload against the repo-native enterprise
+audit report schema, and keeps `result_status: not_executed`.
+
+The audit checklist command emits a deterministic goal/check status report
+for reviewer convenience. It summarizes file-bus validation, handoff inspection,
+registry-backed export, digest manifest, enterprise audit report self-check,
+and manual saved-artifact readback steps. It self-checks the payload against
+the repo-native enterprise audit checklist schema, writes JSON to stdout only,
+and keeps every checklist item `result_status: not_executed`.
+
+The audit verify-report command reads a saved enterprise audit report JSON,
+validates it with the repo-native audit report payload validator, regenerates
+the current report from the file bus, and emits deterministic readback
+verification JSON to stdout. It is not runtime execution, adapter invocation,
+signing, timestamping, trust-root behavior, task dispatch, or file-output mode.
+
 ## File-Bus Loop MVP
 
 AgentHarness now includes a protocol-first file-bus loop MVP for two Codex terminals coordinating through repository files.
@@ -201,11 +234,20 @@ AgentHarness now includes a protocol-first file-bus loop MVP for two Codex termi
 - Adapter registry validation: [`src/agentharness/adapter_registry.py`](src/agentharness/adapter_registry.py)
 - Handoff export packages: [`src/agentharness/handoff_exporter.py`](src/agentharness/handoff_exporter.py)
 - Handoff export manifests: [`src/agentharness/handoff_manifest.py`](src/agentharness/handoff_manifest.py)
+- Enterprise audit reports: [`src/agentharness/enterprise_audit_report.py`](src/agentharness/enterprise_audit_report.py)
+- Enterprise audit checklist reports: [`src/agentharness/enterprise_audit_checklist.py`](src/agentharness/enterprise_audit_checklist.py)
+- Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
+- Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
+- End-to-end evidence-chain regression harness: [`tests/test_end_to_end_evidence_chain.py`](tests/test_end_to_end_evidence_chain.py)
+
 - CLI check: `./agentharness loop check examples/agent_bus`
 - Handoff inspector: `./agentharness handoff inspect examples/agent_bus_handoff`
 - Handoff export: `./agentharness handoff export examples/agent_bus_adapter_registry`
 - Handoff manifest: `./agentharness handoff manifest examples/agent_bus_adapter_registry`
 - Handoff manifest readback: `./agentharness handoff verify-manifest examples/agent_bus_adapter_registry /tmp/agentharness-manifest.json`
+- Enterprise audit report: `./agentharness audit report examples/agent_bus_adapter_registry`
+- Enterprise audit checklist: `./agentharness audit checklist examples/agent_bus_adapter_registry`
+- Enterprise audit report readback: `./agentharness audit verify-report examples/agent_bus_adapter_registry /tmp/agentharness-audit-report.json`
 
 The file-bus validation source of truth is `.agent_bus/ledger.jsonl`. The committed fixtures under `examples/agent_bus/` mirror that file-bus layout without committing live task state.
 
@@ -243,6 +285,8 @@ docs/
   06-runtime-architecture.md
   07-enterprise-positioning-and-boundary-audit.md
   08-glossary-and-product-contract.md
+  09-source-backed-integration-strategy.md
+  10-enterprise-audit-report-and-buyer-demo.md
 src/
   agentharness/
 tests/
@@ -265,6 +309,7 @@ evals/
 schemas/
   agent_policy.schema.yaml
   loop_task.schema.yaml
+  enterprise_audit_report.schema.yaml
 examples/
   agent_policy.example.yaml
   agent_bus/

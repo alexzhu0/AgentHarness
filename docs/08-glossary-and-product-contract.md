@@ -42,7 +42,7 @@ This chain is the current product contract for AgentHarness artifacts. Each step
 | ready | A control-plane status meaning the evidence chain for a request is valid enough to enter export or manifest surfaces. | yes | Already executed, safe by default, or authorized for any future runtime without external owner review. | `src/agentharness/execution_preflight.py`, `src/agentharness/handoff_exporter.py` |
 | blocked | A control-plane status meaning required evidence, approval, policy, digest, or context is missing or invalid. | yes | Runtime failure, tool failure, or a retry command. | `src/agentharness/execution_preflight.py`, `src/agentharness/execution_handoff.py` |
 | unsupported | A control-plane status meaning the selected adapter spec does not support one or more request dimensions. | yes | A tool execution error, missing implementation import, or runtime crash. | `src/agentharness/execution_handoff.py`, `examples/agent_bus_adapter_registry/handoffs/` |
-| `result_status: not_executed` | The invariant marker that current reports/packages/manifests/verification outputs are evidence-only and did not execute tools or adapters. | yes | A partial execution marker, dry-run side effect, or deferred job id. | `src/agentharness/tool_gate.py`, `src/agentharness/handoff_exporter.py`, `src/agentharness/handoff_manifest.py` |
+| `result_status: not_executed` | The invariant marker that current reports/packages/manifests/verification/audit/readback outputs are evidence-only and did not execute tools or adapters. | yes | A partial execution marker, dry-run side effect, or deferred job id. | `src/agentharness/tool_gate.py`, `src/agentharness/handoff_exporter.py`, `src/agentharness/handoff_manifest.py`, `src/agentharness/enterprise_audit_report.py` |
 | external consumer | A downstream runtime, governance, auth, identity, sandbox, or execution-plane system that may read AgentHarness evidence under its own controls. | no | An in-repo AgentHarness module, dependency, or responsibility to run tools. | `docs/07-enterprise-positioning-and-boundary-audit.md` |
 | product contract | The accepted boundary that AgentHarness validates/exports evidence while external consumers own execution, enforcement, identity, authorization, and operations. | yes | A promise to build runtime execution, auth gateway, sandboxing, signing, timestamps, attestations, or trust roots in-repo. | This document, `README.md`, `docs/07-enterprise-positioning-and-boundary-audit.md` |
 
@@ -52,7 +52,7 @@ AgentHarness may validate, summarize, inspect, export, digest, and verify eviden
 
 AgentHarness must not execute tools, call adapters, mutate task lifecycle through public execution commands, run daemons/watchers/schedulers/realtime chat, or act as auth/sandbox/signing/trust-root system.
 
-All current handoff/export/manifest/verification outputs remain `result_status: not_executed`.
+All current handoff/export/manifest/verification/audit/readback outputs remain `result_status: not_executed`.
 
 Adapter references are versioned evidence bindings, not live runtime discovery.
 
@@ -85,7 +85,15 @@ When these avoided terms appear, they should describe external consumers, deferr
 
 ## Future-task guardrails
 
-- T016 integration strategy must cite this glossary.
-- T017 buyer-demo narrative must use this glossary.
+- T016 integration strategy must cite this glossary:
+  [`docs/09-source-backed-integration-strategy.md`](./09-source-backed-integration-strategy.md).
+- T017 buyer-demo narrative must use this glossary:
+  [`docs/10-enterprise-audit-report-and-buyer-demo.md`](./10-enterprise-audit-report-and-buyer-demo.md).
 - Any future runtime spike must first preserve this product contract.
+- T018 machine-readable audit report must remain a validate/inspect/export/digest evidence surface, not an execution, auth, sandbox, signing, or trust-root surface.
+- T020 enterprise audit report schema must remain a repo-native contract/check for pre-execution evidence payloads, not runtime integration, execution, signing, timestamping, attestation, trust-root, auth, governance enforcement, or file-output behavior.
+- T021 audit report readback verification must remain saved-report readback only: it may read a saved JSON report and current bus evidence, but must not become runtime execution, adapter invocation, file-output behavior, signing/timestamping/attestation/trust-root, auth/governance enforcement, dispatch/submit/run/execute, or task mutation.
+- T022 audit checklist must remain reviewer-facing goal/check evidence summarization only: it may mark checks pass/fail/blocked/manual, but must not execute manual readbacks without saved paths, write product files, call adapters, or become runtime/governance/auth/sandbox/signing/trust-root enforcement.
+- T024 checklist schema validation must remain pure payload contract validation only: it may reject drift in `enterprise_audit_checklist_report`, but must not authorize execution, call adapters, write artifacts, add dependencies, or become signing/trust/governance enforcement.
+- T025 end-to-end regression must remain a test harness for the accepted evidence chain: it may compare stage order, counts, canonical digests, and negative drift probes, but must not add a new product command or broaden AgentHarness ownership.
 - Future runtime, governance, auth, identity, sandbox, signing, timestamp, attestation, trust-root, daemon, scheduler, watcher, realtime chat, run, execute, dispatch, submit, or task-mutation work must stay behind explicit adapter/spec boundaries until separately approved.

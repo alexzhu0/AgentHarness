@@ -92,12 +92,26 @@ The accepted T015 glossary and product contract is
 Future integration and buyer-demo work should cite that glossary before adding
 new runtime-adjacent wording.
 
+The T016 source-backed integration strategy is
+[`docs/09-source-backed-integration-strategy.md`](./09-source-backed-integration-strategy.md).
+It maps AgentHarness evidence artifacts to future external consumers without
+adopting SDKs, wrappers, runtime adapters, auth gateways, sandboxes, signing
+systems, or execution-plane responsibilities.
+
+The T017 enterprise audit report and buyer-demo narrative is
+[`docs/10-enterprise-audit-report-and-buyer-demo.md`](./10-enterprise-audit-report-and-buyer-demo.md).
+It shows how reviewers read the evidence chain, ready/blocked/unsupported
+outcomes, ready-only exports, and manifest readback before any external runtime
+owner decides whether evidence is acceptable.
+
 ## T015+ recommended next task options
 
 - **T015:** accepted docs-backed glossary/ontology and product contract:
   [`docs/08-glossary-and-product-contract.md`](./08-glossary-and-product-contract.md).
-- **T016:** source-backed integration strategy for downstream runtime, governance, authorization, and identity layers.
-- **T017:** enterprise audit report examples and buyer-demo narrative showing how a security/platform reviewer reads the evidence chain.
+- **T016:** source-backed integration strategy for downstream runtime, governance, authorization, and identity layers:
+  [`docs/09-source-backed-integration-strategy.md`](./09-source-backed-integration-strategy.md).
+- **T017:** enterprise audit report examples and buyer-demo narrative showing how a security/platform reviewer reads the evidence chain:
+  [`docs/10-enterprise-audit-report-and-buyer-demo.md`](./10-enterprise-audit-report-and-buyer-demo.md).
 - **Deferred:** runtime spike only after boundary acceptance and with explicit adapter contracts that preserve the no-execution default.
 
 ## Source links included

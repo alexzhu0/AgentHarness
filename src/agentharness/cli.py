@@ -7,6 +7,12 @@ import json
 from pathlib import Path
 from typing import Sequence
 
+from .enterprise_audit_checklist import build_enterprise_audit_checklist
+from .enterprise_audit_report import (
+    build_enterprise_audit_report,
+    enterprise_audit_error_payload,
+    verify_enterprise_audit_report,
+)
 from .eval_runner import run_smoke_eval
 from .handoff_exporter import build_handoff_export_package
 from .handoff_manifest import (
@@ -15,7 +21,7 @@ from .handoff_manifest import (
 )
 from .handoff_inspector import format_handoff_inspection, inspect_handoff_bus
 from .loop_bus import validate_bus
-from .validate import validate_policy
+from .validate import ValidationReport, validate_policy
 from .yamlio import YamlLoadError, load_yaml
 
 
@@ -39,7 +45,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agentharness",
         description="Validate AgentHarness policy assets and run policy smoke evals.",
-        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest",
+        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -120,6 +126,36 @@ def _build_parser() -> argparse.ArgumentParser:
     verify_manifest_parser.add_argument("bus_root", help="path to file-bus directory")
     verify_manifest_parser.add_argument("manifest_path", help="path to saved manifest JSON")
     verify_manifest_parser.set_defaults(func=_cmd_handoff_verify_manifest)
+
+    audit_parser = subparsers.add_parser(
+        "audit", help="build read-only enterprise audit evidence reports"
+    )
+    audit_subparsers = audit_parser.add_subparsers(
+        dest="audit_command", required=True
+    )
+    report_parser = audit_subparsers.add_parser(
+        "report",
+        help="emit a deterministic machine-readable enterprise audit report",
+    )
+    report_parser.add_argument("bus_root", help="path to file-bus directory")
+    report_parser.set_defaults(func=_cmd_audit_report)
+
+    checklist_parser = audit_subparsers.add_parser(
+        "checklist",
+        help="emit a deterministic enterprise audit goal/check checklist",
+    )
+    checklist_parser.add_argument("bus_root", help="path to file-bus directory")
+    checklist_parser.set_defaults(func=_cmd_audit_checklist)
+
+    verify_report_parser = audit_subparsers.add_parser(
+        "verify-report",
+        help="verify a saved enterprise audit report against the current file bus",
+    )
+    verify_report_parser.add_argument("bus_root", help="path to file-bus directory")
+    verify_report_parser.add_argument(
+        "audit_report_path", help="path to saved enterprise audit report JSON"
+    )
+    verify_report_parser.set_defaults(func=_cmd_audit_verify_report)
     return parser
 
 
@@ -218,6 +254,58 @@ def _cmd_handoff_verify_manifest(args: argparse.Namespace) -> int:
     report = verify_handoff_export_manifest(args.bus_root, args.manifest_path)
     print(json.dumps(report, indent=2, sort_keys=True))
     return 0 if report.get("ok") is True else 1
+
+
+def _cmd_audit_report(args: argparse.Namespace) -> int:
+    try:
+        payload, report = build_enterprise_audit_report(args.bus_root)
+        if not report.ok or payload is None:
+            print(json.dumps(enterprise_audit_error_payload(report), indent=2, sort_keys=True))
+            return 1
+
+        print(json.dumps(payload, indent=2, sort_keys=True))
+        return 0
+    except Exception as exc:
+        try:
+            report = ValidationReport()
+            report.error(
+                "audit_report.unexpected_error",
+                f"{type(exc).__name__}: {exc}",
+            )
+            print(
+                json.dumps(
+                    enterprise_audit_error_payload(report),
+                    indent=2,
+                    sort_keys=True,
+                )
+            )
+        except Exception:
+            print(json.dumps(_minimal_audit_report_error_payload(), indent=2, sort_keys=True))
+        return 1
+
+
+def _cmd_audit_verify_report(args: argparse.Namespace) -> int:
+    report = verify_enterprise_audit_report(args.bus_root, args.audit_report_path)
+    print(json.dumps(report, indent=2, sort_keys=True))
+    return 0 if report.get("ok") is True else 1
+
+
+def _cmd_audit_checklist(args: argparse.Namespace) -> int:
+    payload = build_enterprise_audit_checklist(args.bus_root)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0 if payload.get("ok") is True else 1
+
+
+def _minimal_audit_report_error_payload() -> dict:
+    return {
+        "version": "0.1.0",
+        "kind": "enterprise_audit_report_error",
+        "source": "build_enterprise_audit_report",
+        "ok": False,
+        "result_status": "not_executed",
+        "errors": ["audit_report.unexpected_error: could not build enterprise audit report"],
+        "warnings": [],
+    }
 
 
 def _load_mapping(path: str, label: str) -> dict:
