@@ -220,6 +220,7 @@ and a pure in-memory validator; this is payload drift protection, not runtime
 authorization, signing, trust-root, governance enforcement, or file output.
 
 For a copy-paste reviewer demo using the existing commands and fixture, see [`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md).
+For reviewer decision outcomes, see [`docs/12-buyer-reviewer-decision-guide.md`](./12-buyer-reviewer-decision-guide.md).
 
 ## Buyer-demo talk track
 

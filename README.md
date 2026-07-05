@@ -138,6 +138,7 @@ Enterprise audit report and buyer demo: [`docs/10-enterprise-audit-report-and-bu
 
 Reproducible enterprise demo: [`docs/11-reproducible-enterprise-demo.md`](docs/11-reproducible-enterprise-demo.md)
 
+Buyer/reviewer decision guide: [`docs/12-buyer-reviewer-decision-guide.md`](docs/12-buyer-reviewer-decision-guide.md)
 
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 
