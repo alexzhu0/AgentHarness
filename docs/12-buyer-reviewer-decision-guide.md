@@ -94,6 +94,7 @@ All current handoff, export, manifest, verification, audit report, report readba
 - Product contract and vocabulary: [`docs/08-glossary-and-product-contract.md`](./08-glossary-and-product-contract.md)
 - Audit report and buyer-demo narrative: [`docs/10-enterprise-audit-report-and-buyer-demo.md`](./10-enterprise-audit-report-and-buyer-demo.md)
 - Reproducible command demo: [`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md)
+- External reviewer checklist: [`docs/13-external-reviewer-checklist.md`](./13-external-reviewer-checklist.md)
 - End-to-end regression harness: [`tests/test_end_to_end_evidence_chain.py`](../tests/test_end_to_end_evidence_chain.py)
 - Golden fixture: [`examples/agent_bus_adapter_registry/`](../examples/agent_bus_adapter_registry/)
 - Existing commands: `handoff inspect`, `handoff export`, `handoff manifest`, `handoff verify-manifest`, `audit report`, `audit verify-report`, and `audit checklist`

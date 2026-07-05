@@ -37,6 +37,7 @@ T024 增加 [`schemas/enterprise_audit_checklist.schema.yaml`](../schemas/enterp
 T025 增加 [`tests/test_end_to_end_evidence_chain.py`](../tests/test_end_to_end_evidence_chain.py)，用于把 accepted evidence chain 锁定为端到端 regression harness；它只调用既有 in-memory builder/validator/readback checks，不新增 CLI 或产品面。
 T027 增加 [`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md)，用于给 reviewer 提供 5–10 分钟可复现 demo flow；它只链接既有命令，不新增脚本、CLI 或产品面。
 T028 增加 [`docs/12-buyer-reviewer-decision-guide.md`](./12-buyer-reviewer-decision-guide.md)，用于说明 reviewer 如何 accept evidence for downstream review、reject evidence package 或 escalate externally；它不新增 lifecycle state 或产品面。
+T029 增加 [`docs/13-external-reviewer-checklist.md`](./13-external-reviewer-checklist.md)，用于给第三方 reviewer 提供 evidence acceptance checklist / rubric；它不新增 runtime approval、lifecycle state、CLI 或产品面。
 
 当前 file-bus MVP 入口：
 
@@ -187,6 +188,7 @@ Prompt 只是 policy 的一个投影，不是唯一控制面。
 - 记录 T025 end-to-end evidence-chain regression harness：[`tests/test_end_to_end_evidence_chain.py`](../tests/test_end_to_end_evidence_chain.py) 断言 accepted stage order、fixture counts、canonical determinism 和 negative drift probes。
 - 链接 T027 reproducible enterprise demo：[`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md)，作为 reviewer copy-paste command flow 和 expected counts 入口。
 - 链接 T028 buyer/reviewer decision guide：[`docs/12-buyer-reviewer-decision-guide.md`](./12-buyer-reviewer-decision-guide.md)，作为 evidence acceptance、rejection 和 external escalation 的解释入口。
+- 链接 T029 external reviewer checklist：[`docs/13-external-reviewer-checklist.md`](./13-external-reviewer-checklist.md)，作为 third-party reviewer 接受、拒绝或外部升级 evidence package 的操作性 rubric。
 
 ## Source Posture
 
