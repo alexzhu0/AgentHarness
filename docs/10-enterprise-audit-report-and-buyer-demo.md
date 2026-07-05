@@ -219,6 +219,8 @@ to `pass`, `fail`, `blocked`, and `manual`, and every check keeps
 and a pure in-memory validator; this is payload drift protection, not runtime
 authorization, signing, trust-root, governance enforcement, or file output.
 
+For a copy-paste reviewer demo using the existing commands and fixture, see [`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md).
+
 ## Buyer-demo talk track
 
 1. **Start with the buyer pain**: agent systems can propose high-impact tool actions, but reviewers need deterministic evidence before a runtime acts.

@@ -136,6 +136,9 @@ Source-backed integration strategy: [`docs/09-source-backed-integration-strategy
 
 Enterprise audit report and buyer demo: [`docs/10-enterprise-audit-report-and-buyer-demo.md`](docs/10-enterprise-audit-report-and-buyer-demo.md)
 
+Reproducible enterprise demo: [`docs/11-reproducible-enterprise-demo.md`](docs/11-reproducible-enterprise-demo.md)
+
+
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 
 Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
