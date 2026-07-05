@@ -19,6 +19,7 @@ from agentharness.yamlio import load_yaml
 
 
 HANDOFF_BUS_ROOT = ROOT / "examples" / "agent_bus_handoff"
+ADAPTER_REGISTRY_BUS_ROOT = ROOT / "examples" / "agent_bus_adapter_registry"
 BASE_BUS_ROOT = ROOT / "examples" / "agent_bus"
 HANDOFF_REPORT_PATH = Path("handoffs") / "T008-handoff-report.yaml"
 
@@ -54,7 +55,7 @@ class HandoffInspectorTests(unittest.TestCase):
         code, output = _run_cli(["handoff", "inspect", str(HANDOFF_BUS_ROOT)])
 
         self.assertEqual(0, code)
-        self.assertIn("PASS handoff inspection:", output)
+        self.assertTrue(output.startswith("PASS handoff inspection\n"))
         self.assertIn(
             "reports=1 total=5 handoff_ready=2 blocked=2 unsupported=1 "
             "result_status=not_executed",
@@ -71,6 +72,8 @@ class HandoffInspectorTests(unittest.TestCase):
         self.assertEqual(0, code)
         payload = json.loads(output)
         self.assertEqual(True, payload["ok"])
+        self.assertNotIn("bus_root", payload)
+        self.assertEqual({"ok", "reports", "summary", "warnings"}, set(payload))
         self.assertEqual(
             {
                 "reports": 1,
@@ -112,6 +115,67 @@ class HandoffInspectorTests(unittest.TestCase):
             set(payload["reports"][0]["handoffs"][0]),
         )
 
+    def test_success_text_output_contains_no_absolute_host_path(self):
+        code, output = _run_cli(["handoff", "inspect", str(ADAPTER_REGISTRY_BUS_ROOT)])
+
+        self.assertEqual(0, code)
+        self.assertEqual("PASS handoff inspection", output.splitlines()[0])
+        _assert_no_absolute_host_path(output, str(ADAPTER_REGISTRY_BUS_ROOT))
+
+    def test_success_json_output_contains_no_absolute_host_path_or_bus_root(self):
+        code, output = _run_cli(
+            ["handoff", "inspect", str(ADAPTER_REGISTRY_BUS_ROOT), "--json"]
+        )
+
+        self.assertEqual(0, code)
+        payload = json.loads(output)
+        self.assertNotIn("bus_root", payload)
+        _assert_no_absolute_host_path(payload, str(ADAPTER_REGISTRY_BUS_ROOT))
+
+    def test_failure_text_for_temp_fixture_contains_no_raw_temp_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bus_root = Path(tmpdir) / "agent_bus"
+            shutil.copytree(BASE_BUS_ROOT, bus_root)
+
+            code, output = _run_cli(["handoff", "inspect", str(bus_root)])
+
+            self.assertEqual(1, code)
+            self.assertIn("FAIL handoff inspection", output)
+            self.assertIn("no execution handoff report referenced", output)
+            _assert_no_absolute_host_path(output, tmpdir, str(bus_root))
+
+    def test_failure_json_for_temp_fixture_contains_no_raw_temp_path(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bus_root = Path(tmpdir) / "agent_bus"
+            shutil.copytree(BASE_BUS_ROOT, bus_root)
+
+            code, output = _run_cli(["handoff", "inspect", str(bus_root), "--json"])
+
+            self.assertEqual(1, code)
+            payload = json.loads(output)
+            self.assertEqual(False, payload["ok"])
+            self.assertIn(
+                "no execution handoff report referenced", "\n".join(payload["errors"])
+            )
+            _assert_no_absolute_host_path(payload, tmpdir, str(bus_root))
+
+    def test_malformed_handoff_yaml_failure_sanitizes_parser_paths(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            bus_root = Path(tmpdir) / "agent_bus_handoff"
+            shutil.copytree(HANDOFF_BUS_ROOT, bus_root)
+            (bus_root / HANDOFF_REPORT_PATH).write_text(
+                "handoffs: [\n", encoding="utf-8"
+            )
+
+            code, output = _run_cli(["handoff", "inspect", str(bus_root), "--json"])
+
+            self.assertEqual(1, code)
+            payload = json.loads(output)
+            errors = "\n".join(payload["errors"])
+            self.assertIn("could not parse execution handoff report", errors)
+            self.assertIn("<bus_root>", errors)
+            _assert_no_absolute_host_path(payload, tmpdir, str(bus_root))
+
     def test_handoff_inspect_fails_when_no_handoff_report_is_referenced(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             bus_root = Path(tmpdir) / "agent_bus"
@@ -120,7 +184,7 @@ class HandoffInspectorTests(unittest.TestCase):
             code, output = _run_cli(["handoff", "inspect", str(bus_root)])
 
         self.assertEqual(1, code)
-        self.assertIn("FAIL handoff inspection:", output)
+        self.assertIn("FAIL handoff inspection", output)
         self.assertIn("no execution handoff report referenced", output)
 
     def test_handoff_inspect_rejects_forged_handoff_digest(self):
@@ -135,7 +199,7 @@ class HandoffInspectorTests(unittest.TestCase):
         )
 
         self.assertEqual(1, code)
-        self.assertIn("FAIL handoff inspection:", output)
+        self.assertIn("FAIL handoff inspection", output)
         self.assertIn("subject", output)
 
     def test_handoff_inspect_rejects_blocked_marked_ready(self):
@@ -287,6 +351,30 @@ def _mutate_ledger_event(bus_root, event_id, mutate):
 
 def _write_yaml(path, value):
     path.write_text(yaml.safe_dump(value, sort_keys=False), encoding="utf-8")
+
+
+def _assert_no_absolute_host_path(value, *extra_forbidden):
+    strings = list(_strings_in(value))
+    forbidden = [str(ROOT), "/home/", "/tmp/", *extra_forbidden]
+    for item in strings:
+        for token in forbidden:
+            if token:
+                if token in item:
+                    raise AssertionError(
+                        f"found host path token {token!r} in {item!r}"
+                    )
+
+
+def _strings_in(value):
+    if isinstance(value, str):
+        yield value
+    elif isinstance(value, dict):
+        for key, item in value.items():
+            yield from _strings_in(key)
+            yield from _strings_in(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _strings_in(item)
 
 
 if __name__ == "__main__":

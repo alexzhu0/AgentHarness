@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, Mapping
 
+from .audit_contract import sanitize_audit_message
 from .loop_bus import parse_ledger, validate_bus
 from .validate import ValidationReport
 from .yamlio import YamlLoadError, load_yaml
@@ -56,10 +57,9 @@ def inspect_handoff_bus(bus_root: str | Path) -> tuple[dict[str, Any] | None, Va
 
     inspection = {
         "ok": True,
-        "bus_root": str(root),
         "summary": _aggregate_summary(reports),
         "reports": reports,
-        "warnings": list(report.warnings),
+        "warnings": sanitize_handoff_inspection_messages(report.warnings),
     }
     return inspection, report
 
@@ -69,7 +69,7 @@ def format_handoff_inspection(inspection: Mapping[str, Any]) -> str:
 
     summary = _mapping_or_empty(inspection.get("summary"))
     lines = [
-        f"PASS handoff inspection: {inspection.get('bus_root')}",
+        "PASS handoff inspection",
         (
             "reports={reports} total={total} handoff_ready={ready} "
             "blocked={blocked} unsupported={unsupported} result_status={result_status}"
@@ -111,9 +111,23 @@ def format_handoff_inspection(inspection: Mapping[str, Any]) -> str:
                     target_scope=handoff.get("target_scope"),
                 )
             )
-    for warning in inspection.get("warnings", []):
+    for warning in sanitize_handoff_inspection_messages(inspection.get("warnings", [])):
         lines.append(f"WARN {warning}")
     return "\n".join(lines)
+
+
+def sanitize_handoff_inspection_messages(values: Any) -> list[str]:
+    """Return deterministic public handoff-inspection messages without host paths."""
+
+    if not isinstance(values, list):
+        return []
+    return [sanitize_handoff_inspection_message(value) for value in values]
+
+
+def sanitize_handoff_inspection_message(value: Any) -> str:
+    """Sanitize one handoff-inspection error or warning for CLI/JSON output."""
+
+    return sanitize_audit_message(value).replace("<path>", "<bus_root>")
 
 
 def _handoff_report_references(events: list[dict[str, Any]]) -> list[str]:

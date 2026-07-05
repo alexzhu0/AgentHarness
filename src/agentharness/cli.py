@@ -19,7 +19,11 @@ from .handoff_manifest import (
     build_handoff_export_manifest,
     verify_handoff_export_manifest,
 )
-from .handoff_inspector import format_handoff_inspection, inspect_handoff_bus
+from .handoff_inspector import (
+    format_handoff_inspection,
+    inspect_handoff_bus,
+    sanitize_handoff_inspection_messages,
+)
 from .loop_bus import validate_bus
 from .validate import ValidationReport, validate_policy
 from .yamlio import YamlLoadError, load_yaml
@@ -193,25 +197,30 @@ def _cmd_loop_check(args: argparse.Namespace) -> int:
 
 
 def _cmd_handoff_inspect(args: argparse.Namespace) -> int:
-    inspection, report = inspect_handoff_bus(args.bus_root)
+    try:
+        inspection, report = inspect_handoff_bus(args.bus_root)
+    except (YamlLoadError, ValueError, OSError) as exc:
+        inspection = None
+        report = ValidationReport()
+        report.error("handoff_inspection", str(exc))
     if not report.ok or inspection is None:
         if args.json_output:
             print(
                 json.dumps(
                     {
                         "ok": False,
-                        "errors": list(report.errors),
-                        "warnings": list(report.warnings),
+                        "errors": sanitize_handoff_inspection_messages(report.errors),
+                        "warnings": sanitize_handoff_inspection_messages(report.warnings),
                     },
                     indent=2,
                     sort_keys=True,
                 )
             )
         else:
-            print(f"FAIL handoff inspection: {Path(args.bus_root)}")
-            for error in report.errors:
+            print("FAIL handoff inspection")
+            for error in sanitize_handoff_inspection_messages(report.errors):
                 print(f"ERROR {error}")
-            for warning in report.warnings:
+            for warning in sanitize_handoff_inspection_messages(report.warnings):
                 print(f"WARN {warning}")
         return 1
 
