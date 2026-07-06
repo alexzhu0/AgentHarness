@@ -4,6 +4,7 @@ AgentHarness is a pre-execution evidence control-plane for agent actions.
 
 This document is a 5–10 minute copy-paste demo for showing the accepted AgentHarness evidence chain with the committed `examples/agent_bus_adapter_registry` fixture. It is factual demo guidance only; it does not add a command, script, fixture, schema, or product behavior.
 For how reviewers turn this evidence into accept/reject/escalate decisions, see [`docs/12-buyer-reviewer-decision-guide.md`](./12-buyer-reviewer-decision-guide.md).
+For a recorded reviewer dry-run with expected vs observed summaries, see [`docs/14-reviewer-dry-run-and-reproducibility.md`](./14-reviewer-dry-run-and-reproducibility.md).
 
 ## Who this demo is for
 

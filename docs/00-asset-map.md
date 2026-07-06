@@ -38,6 +38,9 @@ T025 增加 [`tests/test_end_to_end_evidence_chain.py`](../tests/test_end_to_end
 T027 增加 [`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md)，用于给 reviewer 提供 5–10 分钟可复现 demo flow；它只链接既有命令，不新增脚本、CLI 或产品面。
 T028 增加 [`docs/12-buyer-reviewer-decision-guide.md`](./12-buyer-reviewer-decision-guide.md)，用于说明 reviewer 如何 accept evidence for downstream review、reject evidence package 或 escalate externally；它不新增 lifecycle state 或产品面。
 T029 增加 [`docs/13-external-reviewer-checklist.md`](./13-external-reviewer-checklist.md)，用于给第三方 reviewer 提供 evidence acceptance checklist / rubric；它不新增 runtime approval、lifecycle state、CLI 或产品面。
+T030 增加 [`docs/14-reviewer-dry-run-and-reproducibility.md`](./14-reviewer-dry-run-and-reproducibility.md)，用于记录 reviewer dry-run、expected vs observed summaries 和 checklist decision mapping；它只强化复现文档，不新增脚本、CLI、runtime、schema 或产品面。
+T031 增加 [`docs/15-agentharness-development-loop-operating-model.md`](./15-agentharness-development-loop-operating-model.md)，用于规定未来 T0xx Loop Task Packet、maker/checker split、checks、failure probes、human gates 和 reviewer gates；它是开发流程文档，不新增产品/runtime 行为。
+T032 增加 [`docs/16-phase-e-release-readiness-and-packaging-audit.md`](./16-phase-e-release-readiness-and-packaging-audit.md)，用于审计 Phase E 是否适合未来本地 milestone packaging；它不是 commit、push、public release、production readiness、runtime approval 或 safe-to-execute claim。
 
 当前 file-bus MVP 入口：
 
@@ -189,6 +192,9 @@ Prompt 只是 policy 的一个投影，不是唯一控制面。
 - 链接 T027 reproducible enterprise demo：[`docs/11-reproducible-enterprise-demo.md`](./11-reproducible-enterprise-demo.md)，作为 reviewer copy-paste command flow 和 expected counts 入口。
 - 链接 T028 buyer/reviewer decision guide：[`docs/12-buyer-reviewer-decision-guide.md`](./12-buyer-reviewer-decision-guide.md)，作为 evidence acceptance、rejection 和 external escalation 的解释入口。
 - 链接 T029 external reviewer checklist：[`docs/13-external-reviewer-checklist.md`](./13-external-reviewer-checklist.md)，作为 third-party reviewer 接受、拒绝或外部升级 evidence package 的操作性 rubric。
+- 链接 T030 reviewer dry-run and reproducibility：[`docs/14-reviewer-dry-run-and-reproducibility.md`](./14-reviewer-dry-run-and-reproducibility.md)，作为 external reviewer 复现实测、对比 expected vs observed counts，并应用 checklist decision mapping 的入口。
+- 链接 T031 development loop operating model：[`docs/15-agentharness-development-loop-operating-model.md`](./15-agentharness-development-loop-operating-model.md)，作为后续 AgentHarness T0xx 任务的 Loop Task Packet、reviewer gate 和 human gate 操作模型。
+- 链接 T032 Phase E release readiness and packaging audit：[`docs/16-phase-e-release-readiness-and-packaging-audit.md`](./16-phase-e-release-readiness-and-packaging-audit.md)，作为未来本地 milestone commit 前的 include/exclude、GO/COMMENT/NO-GO 和边界审计入口。
 
 ## Source Posture
 

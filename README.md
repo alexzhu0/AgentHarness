@@ -142,6 +142,12 @@ Buyer/reviewer decision guide: [`docs/12-buyer-reviewer-decision-guide.md`](docs
 
 External reviewer checklist: [`docs/13-external-reviewer-checklist.md`](docs/13-external-reviewer-checklist.md)
 
+Reviewer dry-run and reproducibility: [`docs/14-reviewer-dry-run-and-reproducibility.md`](docs/14-reviewer-dry-run-and-reproducibility.md)
+
+Development loop operating model: [`docs/15-agentharness-development-loop-operating-model.md`](docs/15-agentharness-development-loop-operating-model.md)
+
+Phase E release readiness and packaging audit: [`docs/16-phase-e-release-readiness-and-packaging-audit.md`](docs/16-phase-e-release-readiness-and-packaging-audit.md)
+
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 
 Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
