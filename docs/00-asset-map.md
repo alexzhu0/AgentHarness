@@ -41,6 +41,21 @@ T029 增加 [`docs/13-external-reviewer-checklist.md`](./13-external-reviewer-ch
 T030 增加 [`docs/14-reviewer-dry-run-and-reproducibility.md`](./14-reviewer-dry-run-and-reproducibility.md)，用于记录 reviewer dry-run、expected vs observed summaries 和 checklist decision mapping；它只强化复现文档，不新增脚本、CLI、runtime、schema 或产品面。
 T031 增加 [`docs/15-agentharness-development-loop-operating-model.md`](./15-agentharness-development-loop-operating-model.md)，用于规定未来 T0xx Loop Task Packet、maker/checker split、checks、failure probes、human gates 和 reviewer gates；它是开发流程文档，不新增产品/runtime 行为。
 T032 增加 [`docs/16-phase-e-release-readiness-and-packaging-audit.md`](./16-phase-e-release-readiness-and-packaging-audit.md)，用于审计 Phase E 是否适合未来本地 milestone packaging；它不是 commit、push、public release、production readiness、runtime approval 或 safe-to-execute claim。
+T034 增加 [`docs/17-pi-integration-boundary-and-contract.md`](./17-pi-integration-boundary-and-contract.md)，用于以 contract-first 方式界定未来 AgentHarness ↔ Pi evidence gate 边界；它只使用 Pi 只读事实，不修改 Pi、不新增依赖、不实现 runtime hook。
+T035 增加 [`docs/18-pi-tool-call-mapping-fixture.md`](./18-pi-tool-call-mapping-fixture.md) 和 [`examples/pi_tool_call_mapping/`](../examples/pi_tool_call_mapping/)，用于提供静态 Pi-like tool-call observation 与 expected mapping fixture；它不调用、不导入、不依赖、不修改 Pi，也不执行工具。
+T036 增加 [`src/agentharness/pi_tool_call_mapping.py`](../src/agentharness/pi_tool_call_mapping.py) 和 [`tests/test_pi_tool_call_mapping.py`](../tests/test_pi_tool_call_mapping.py)，用于对 T035 静态 fixture 做 pure AgentHarness-side mock decision validation；它不调用 Pi、不实现 live hook，也不把 `allow_candidate` 归一化为 runtime allow。
+T037 增加 [`docs/19-pi-contract-check-cli.md`](./19-pi-contract-check-cli.md) 和 `./agentharness pi contract-check`，作为 T036 validator 的 stdout-only CLI wrapper；它只检查静态 fixture 与 registry-backed evidence，不修改 Pi、不执行工具、不输出 runtime allow、不新增 writer flags。
+T039 增加 [`docs/20-pi-dual-repo-dry-run-e2e.md`](./20-pi-dual-repo-dry-run-e2e.md)，用于记录 Pi opt-in dry-run gate 调用本地 AgentHarness CLI 的 dual-repo E2E；它证明 wiring 与 fail-closed block，不授权 runtime allow 或真实工具执行。
+T040 增加 [`docs/21-pi-controlled-read-only-poc.md`](./21-pi-controlled-read-only-poc.md)，用于记录 test-only controlled read-only allow/block PoC；它只允许 exact fake `read_workspace` + `{path: "README.md"}` 在显式 env 下执行，其他情况仍 block，不代表 production runtime allow。
+T041 增加
+[`docs/22-pi-integration-readiness-pause-review.md`](./22-pi-integration-readiness-pause-review.md)，
+用于在 T040 后暂停并记录 readiness decision；结论是
+`ready_for_real_execution: false`、`ready_for_next_planning_loop: true`，
+不授权真实 Pi 执行。
+T042 增加
+[`docs/23-pi-milestone-packaging-audit.md`](./23-pi-milestone-packaging-audit.md)，
+用于分类 T034-T041/T042 AgentHarness include/exclude set、Pi companion
+status 和未来 staging strategy；决策为 COMMENT，不做 commit 或 push。
 
 当前 file-bus MVP 入口：
 
@@ -195,6 +210,21 @@ Prompt 只是 policy 的一个投影，不是唯一控制面。
 - 链接 T030 reviewer dry-run and reproducibility：[`docs/14-reviewer-dry-run-and-reproducibility.md`](./14-reviewer-dry-run-and-reproducibility.md)，作为 external reviewer 复现实测、对比 expected vs observed counts，并应用 checklist decision mapping 的入口。
 - 链接 T031 development loop operating model：[`docs/15-agentharness-development-loop-operating-model.md`](./15-agentharness-development-loop-operating-model.md)，作为后续 AgentHarness T0xx 任务的 Loop Task Packet、reviewer gate 和 human gate 操作模型。
 - 链接 T032 Phase E release readiness and packaging audit：[`docs/16-phase-e-release-readiness-and-packaging-audit.md`](./16-phase-e-release-readiness-and-packaging-audit.md)，作为未来本地 milestone commit 前的 include/exclude、GO/COMMENT/NO-GO 和边界审计入口。
+- 链接 T034 Pi integration boundary and contract：[`docs/17-pi-integration-boundary-and-contract.md`](./17-pi-integration-boundary-and-contract.md)，作为未来 Pi runtime-candidate evidence gate 的 contract-first planning 入口，不代表 live integration。
+- 链接 T035 Pi tool-call mapping fixture：[`docs/18-pi-tool-call-mapping-fixture.md`](./18-pi-tool-call-mapping-fixture.md)，作为未来 mock decision validator 的静态 observation/expectation 入口，不代表 live Pi runtime 集成。
+- 记录 T036 Pi mock decision validator：[`src/agentharness/pi_tool_call_mapping.py`](../src/agentharness/pi_tool_call_mapping.py) 只读取静态 fixture 与既有 export/manifest evidence，输出 deterministic `pi_tool_call_mapping_validation_report`，不是 runtime surface。
+- 记录 T037 Pi contract-check CLI：[`docs/19-pi-contract-check-cli.md`](./19-pi-contract-check-cli.md) 和 `./agentharness pi contract-check` 复用 T036 validator，stdout-only 输出 deterministic JSON；`allow_candidate` 仍只是 candidate evidence，不是 runtime allow、runtime approval 或 safe-to-execute approval。
+- 记录 T039 Pi dual-repo dry-run E2E：[`docs/20-pi-dual-repo-dry-run-e2e.md`](./20-pi-dual-repo-dry-run-e2e.md) 说明 Pi opt-in gate 如何调用本地 AgentHarness CLI，并且即使 `ok:true` / `allow_candidate` 也仍然 block before execution。
+- 记录 T040 Pi controlled read-only PoC：[`docs/21-pi-controlled-read-only-poc.md`](./21-pi-controlled-read-only-poc.md) 说明显式 `PI_AGENTHARNESS_READ_ONLY_POC=1` 下 exact fake read-only test tool 可执行一次，但不是 generic runtime allow、safe-to-execute approval 或真实 Pi 工具授权。
+- 记录 T041 Pi integration readiness pause review：
+  [`docs/22-pi-integration-readiness-pause-review.md`](./22-pi-integration-readiness-pause-review.md)
+  明确当前 `ready_for_real_execution: false`、
+  `ready_for_next_planning_loop: true`，下一步只能是显式
+  precondition planning loop。
+- 记录 T042 Pi milestone packaging audit：
+  [`docs/23-pi-milestone-packaging-audit.md`](./23-pi-milestone-packaging-audit.md)
+  将 AgentHarness T034-T041/T042 包装候选、排除项、Pi companion
+  状态和禁止 `git add .` 的未来 staging 策略分开说明。
 
 ## Source Posture
 

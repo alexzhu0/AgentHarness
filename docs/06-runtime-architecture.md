@@ -22,6 +22,8 @@ tools automatically.
 
 For the enterprise category boundary around this runtime architecture, see
 [`docs/07-enterprise-positioning-and-boundary-audit.md`](./07-enterprise-positioning-and-boundary-audit.md).
+For a future Pi runtime-candidate boundary contract, see
+[`docs/17-pi-integration-boundary-and-contract.md`](./17-pi-integration-boundary-and-contract.md); it is conceptual only and does not implement runtime integration.
 
 ## Runtime Thesis
 

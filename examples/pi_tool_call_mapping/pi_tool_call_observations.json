@@ -1,0 +1,156 @@
+{
+  "kind": "pi_tool_call_observation_batch",
+  "schema_version": "0.1.0",
+  "source": "static_fixture_not_from_pi_runtime",
+  "result_status": "not_executed",
+  "pi_facts_source": {
+    "agentharness_contract_doc": "docs/17-pi-integration-boundary-and-contract.md",
+    "planning_basis": "T034 read-only Pi facts; this fixture is hand-authored and was not captured from a live Pi runtime",
+    "pi_fact_refs": [
+      "Pi README.md:23-25 package roles",
+      "Pi README.md:59-67 no built-in permission system by default",
+      "Pi packages/agent/src/types.ts:49-58 BeforeToolCallResult shape",
+      "Pi packages/agent/src/types.ts:83-93 beforeToolCall context",
+      "Pi packages/agent/src/types.ts:245-262 tool execution mode and beforeToolCall placement",
+      "Pi packages/agent/src/types.ts:360-384 AgentTool schema/execute shape"
+    ]
+  },
+  "batch": {
+    "batch_id": "pi-static-batch-001",
+    "order_semantics": "preserve_observation_order_and_decide_each_call_independently",
+    "note": "Mixed batch covers allow_candidate, unsupported, block, and error outcomes without executing tools."
+  },
+  "observations": [
+    {
+      "observation_id": "pi-obs-001-read-workspace",
+      "order_index": 0,
+      "tool_call_id": "pi-call-001",
+      "tool_name": "read_file",
+      "arguments_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "arguments_summary": {
+        "redacted": true,
+        "shape": {
+          "path": "repository-relative workspace file"
+        }
+      },
+      "category_candidate": "file_read",
+      "intent_candidate": "inspect_workspace",
+      "target_scope_candidate": "repository",
+      "session_ref": "static-session-001",
+      "task_ref": "T035-static-fixture",
+      "agentharness_refs_if_available": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id_candidate": "TR-read"
+      }
+    },
+    {
+      "observation_id": "pi-obs-002-read-unsupported-intent",
+      "order_index": 1,
+      "tool_call_id": "pi-call-002",
+      "tool_name": "read_file",
+      "arguments_digest": "sha256:2222222222222222222222222222222222222222222222222222222222222222",
+      "arguments_summary": {
+        "redacted": true,
+        "shape": {
+          "path": "repository configuration file"
+        }
+      },
+      "category_candidate": "file_read",
+      "intent_candidate": "inspect_config",
+      "target_scope_candidate": "repository",
+      "session_ref": "static-session-001",
+      "task_ref": "T035-static-fixture",
+      "agentharness_refs_if_available": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id_candidate": "TR-read-unsupported-intent"
+      }
+    },
+    {
+      "observation_id": "pi-obs-003-edit-write-like",
+      "order_index": 2,
+      "tool_call_id": "pi-call-003",
+      "tool_name": "edit_file",
+      "arguments_digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+      "arguments_summary": {
+        "redacted": true,
+        "shape": {
+          "path": "repository-relative file",
+          "patch": "redacted patch summary"
+        }
+      },
+      "category_candidate": "file_write",
+      "intent_candidate": "edit_file",
+      "target_scope_candidate": "repository",
+      "session_ref": "static-session-001",
+      "task_ref": "T035-static-fixture",
+      "agentharness_refs_if_available": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id_candidate": null
+      }
+    },
+    {
+      "observation_id": "pi-obs-004-bash-shell",
+      "order_index": 3,
+      "tool_call_id": "pi-call-004",
+      "tool_name": "bash",
+      "arguments_digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+      "arguments_summary": {
+        "redacted": true,
+        "shape": {
+          "command": "redacted shell command"
+        }
+      },
+      "category_candidate": "shell",
+      "intent_candidate": "run_tests",
+      "target_scope_candidate": "repository",
+      "session_ref": "static-session-001",
+      "task_ref": "T035-static-fixture",
+      "agentharness_refs_if_available": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id_candidate": "TR-deny-unknown"
+      }
+    },
+    {
+      "observation_id": "pi-obs-005-malformed-missing-tool",
+      "order_index": 4,
+      "tool_call_id": "pi-call-005",
+      "tool_name": null,
+      "arguments_digest": null,
+      "arguments_summary": {
+        "redacted": true,
+        "shape": "malformed_missing_tool_name_and_digest"
+      },
+      "category_candidate": null,
+      "intent_candidate": null,
+      "target_scope_candidate": null,
+      "session_ref": "static-session-001",
+      "task_ref": "T035-static-fixture",
+      "agentharness_refs_if_available": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id_candidate": null
+      }
+    },
+    {
+      "observation_id": "pi-obs-006-read-outside-scope",
+      "order_index": 5,
+      "tool_call_id": "pi-call-006",
+      "tool_name": "read_file",
+      "arguments_digest": "sha256:6666666666666666666666666666666666666666666666666666666666666666",
+      "arguments_summary": {
+        "redacted": true,
+        "shape": {
+          "path": "outside repository scope"
+        }
+      },
+      "category_candidate": "file_read",
+      "intent_candidate": "inspect_workspace",
+      "target_scope_candidate": "outside_repository",
+      "session_ref": "static-session-001",
+      "task_ref": "T035-static-fixture",
+      "agentharness_refs_if_available": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id_candidate": null
+      }
+    }
+  ]
+}

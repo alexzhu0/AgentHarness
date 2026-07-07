@@ -148,6 +148,22 @@ Development loop operating model: [`docs/15-agentharness-development-loop-operat
 
 Phase E release readiness and packaging audit: [`docs/16-phase-e-release-readiness-and-packaging-audit.md`](docs/16-phase-e-release-readiness-and-packaging-audit.md)
 
+Pi integration boundary and contract planning doc only, not live Pi integration: [`docs/17-pi-integration-boundary-and-contract.md`](docs/17-pi-integration-boundary-and-contract.md)
+
+Pi tool-call mapping static fixture doc only, not live Pi integration: [`docs/18-pi-tool-call-mapping-fixture.md`](docs/18-pi-tool-call-mapping-fixture.md)
+
+Pi contract-check CLI doc for static fixture validation only, not live Pi integration: [`docs/19-pi-contract-check-cli.md`](docs/19-pi-contract-check-cli.md)
+
+Pi dual-repo dry-run E2E doc for opt-in local wiring only, not runtime allow: [`docs/20-pi-dual-repo-dry-run-e2e.md`](docs/20-pi-dual-repo-dry-run-e2e.md)
+
+Pi controlled read-only PoC doc for test-only exact fake read allow/block branching, not production runtime allow: [`docs/21-pi-controlled-read-only-poc.md`](docs/21-pi-controlled-read-only-poc.md)
+
+Pi integration readiness pause review, not real execution approval:
+[`docs/22-pi-integration-readiness-pause-review.md`](docs/22-pi-integration-readiness-pause-review.md)
+
+Pi milestone packaging audit, not a commit or release:
+[`docs/23-pi-milestone-packaging-audit.md`](docs/23-pi-milestone-packaging-audit.md)
+
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 
 Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
@@ -179,6 +195,7 @@ AgentHarness includes a small local CLI for keeping the YAML assets honest:
 ./agentharness audit checklist examples/agent_bus_adapter_registry
 ./agentharness audit report examples/agent_bus_adapter_registry > /tmp/agentharness-audit-report.json
 ./agentharness audit verify-report examples/agent_bus_adapter_registry /tmp/agentharness-audit-report.json
+./agentharness pi contract-check examples/pi_tool_call_mapping/pi_tool_call_observations.json examples/pi_tool_call_mapping/expected_mapping.json examples/agent_bus_adapter_registry
 ```
 
 The eval command is a mock policy smoke runner. It does not execute a model; it checks whether the current policy contains enforceable controls for the first prompt-injection, prompt-disclosure and secret-handling safety cases.
@@ -224,6 +241,12 @@ validates it with the repo-native audit report payload validator, regenerates
 the current report from the file bus, and emits deterministic readback
 verification JSON to stdout. It is not runtime execution, adapter invocation,
 signing, timestamping, trust-root behavior, task dispatch, or file-output mode.
+
+The pi contract-check command runs the T036 static Pi-like mapping validator
+over observation and expectation fixtures plus the registry-backed bus. It
+emits `pi_tool_call_mapping_validation_report` JSON to stdout only, returns 0
+only when `ok:true`, and keeps `allow_candidate` as candidate evidence rather
+than runtime allow or safe-to-execute approval.
 
 ## File-Bus Loop MVP
 
@@ -299,6 +322,15 @@ docs/
   08-glossary-and-product-contract.md
   09-source-backed-integration-strategy.md
   10-enterprise-audit-report-and-buyer-demo.md
+  11-reproducible-enterprise-demo.md
+  12-buyer-reviewer-decision-guide.md
+  13-external-reviewer-checklist.md
+  14-reviewer-dry-run-and-reproducibility.md
+  15-agentharness-development-loop-operating-model.md
+  16-phase-e-release-readiness-and-packaging-audit.md
+  17-pi-integration-boundary-and-contract.md
+  18-pi-tool-call-mapping-fixture.md
+  19-pi-contract-check-cli.md
 src/
   agentharness/
 tests/

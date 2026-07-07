@@ -1,0 +1,121 @@
+{
+  "kind": "agentharness_pi_mapping_expectations",
+  "schema_version": "0.1.0",
+  "source": "static_fixture_expectations_not_runtime_decisions",
+  "result_status": "not_executed",
+  "decision_vocabulary": [
+    "allow_candidate",
+    "block",
+    "unsupported",
+    "error"
+  ],
+  "boundary_notes": [
+    "allow_candidate is not execution approval",
+    "allow_candidate is not runtime approval",
+    "allow_candidate is not a claim that the action is safe to execute",
+    "all expectations are static and side-effect-free",
+    "Pi was not called, imported, depended on, or modified"
+  ],
+  "mapping_expectations": [
+    {
+      "observation_id": "pi-obs-001-read-workspace",
+      "order_index": 0,
+      "expected_decision": "allow_candidate",
+      "reason": "Read-like repository inspection matches the existing AgentHarness ready request concept.",
+      "evidence_refs": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id": "TR-read",
+        "handoff_status": "handoff_ready",
+        "preflight": "ready_without_approval",
+        "category": "file_read",
+        "intent": "inspect_workspace",
+        "target_scope": "repository",
+        "result_status": "not_executed"
+      },
+      "allow_candidate_notes": [
+        "not execution approval",
+        "not runtime approval",
+        "future runtime owner still decides whether any call proceeds"
+      ]
+    },
+    {
+      "observation_id": "pi-obs-002-read-unsupported-intent",
+      "order_index": 1,
+      "expected_decision": "unsupported",
+      "reason": "Read-like call has an unsupported intent relative to the current adapter evidence.",
+      "evidence_refs": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id": "TR-read-unsupported-intent",
+        "handoff_status": "unsupported",
+        "category": "file_read",
+        "intent": "inspect_config",
+        "target_scope": "repository",
+        "result_status": "not_executed"
+      }
+    },
+    {
+      "observation_id": "pi-obs-003-edit-write-like",
+      "order_index": 2,
+      "expected_decision": "unsupported",
+      "reason": "Write/edit-like call has no current AgentHarness Pi mapping fixture support and must not be upgraded to a runtime-ready decision.",
+      "evidence_refs": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "current_export_match": null,
+        "current_ready_request_match": null,
+        "result_status": "not_executed"
+      }
+    },
+    {
+      "observation_id": "pi-obs-004-bash-shell",
+      "order_index": 3,
+      "expected_decision": "block",
+      "reason": "Shell-like call maps to policy-denied/no-safe-mapping evidence and must fail closed.",
+      "evidence_refs": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "request_id": "TR-deny-unknown",
+        "handoff_status": "blocked",
+        "preflight": "blocked_by_policy",
+        "category": "shell",
+        "intent": "run_tests",
+        "target_scope": "repository",
+        "result_status": "not_executed"
+      }
+    },
+    {
+      "observation_id": "pi-obs-005-malformed-missing-tool",
+      "order_index": 4,
+      "expected_decision": "error",
+      "reason": "Malformed observation lacks required tool name and argument digest fields.",
+      "evidence_refs": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "current_export_match": null,
+        "result_status": "not_executed"
+      }
+    },
+    {
+      "observation_id": "pi-obs-006-read-outside-scope",
+      "order_index": 5,
+      "expected_decision": "unsupported",
+      "reason": "Read-like call has an unsupported target scope and cannot map to the repository-scoped ready request.",
+      "evidence_refs": {
+        "fixture_bus": "examples/agent_bus_adapter_registry",
+        "current_export_match": null,
+        "category": "file_read",
+        "intent": "inspect_workspace",
+        "target_scope": "outside_repository",
+        "result_status": "not_executed"
+      }
+    }
+  ],
+  "order_check": {
+    "expected_observation_order": [
+      "pi-obs-001-read-workspace",
+      "pi-obs-002-read-unsupported-intent",
+      "pi-obs-003-edit-write-like",
+      "pi-obs-004-bash-shell",
+      "pi-obs-005-malformed-missing-tool",
+      "pi-obs-006-read-outside-scope"
+    ],
+    "order_semantics": "preserve_order_and_decide_independently"
+  }
+}

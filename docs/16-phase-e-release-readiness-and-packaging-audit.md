@@ -202,6 +202,7 @@ After a local milestone commit, possible next loops are:
 - buyer-facing narrative polish based on reviewer feedback;
 - evidence-package retention or release-note documentation, still docs-only unless separately approved;
 - a future runtime-boundary spike only after a new plan preserves the AgentHarness evidence control-plane contract;
+- a contract-first Pi boundary planning task such as [`docs/17-pi-integration-boundary-and-contract.md`](./17-pi-integration-boundary-and-contract.md), still without live integration unless separately approved;
 - a separate packaging/release task if the human wants public distribution later.
 
 Do not treat any next phase as authorized by this audit alone.

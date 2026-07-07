@@ -51,6 +51,7 @@ AgentHarness may later expose request digests, approval evidence, and manifest r
 A future execution-plane candidate remains deferred. T016 does not name a concrete repository, dependency, package, import, test, call, or adapter invocation. Any future spike must preserve the T015 product contract, keep adapter references as versioned evidence bindings, and start from registry-backed handoff exports plus manifest verification.
 
 Until separately planned and accepted, this candidate is an external consumer placeholder only.
+A later contract-first Pi boundary note is captured in [`docs/17-pi-integration-boundary-and-contract.md`](./17-pi-integration-boundary-and-contract.md); it remains conceptual and does not modify or depend on Pi.
 
 ## Build / Buy / Integrate / Defer rules
 

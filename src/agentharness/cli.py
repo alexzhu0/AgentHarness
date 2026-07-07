@@ -25,6 +25,7 @@ from .handoff_inspector import (
     sanitize_handoff_inspection_messages,
 )
 from .loop_bus import validate_bus
+from .pi_tool_call_mapping import build_pi_tool_call_mapping_report
 from .validate import ValidationReport, validate_policy
 from .yamlio import YamlLoadError, load_yaml
 
@@ -49,7 +50,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agentharness",
         description="Validate AgentHarness policy assets and run policy smoke evals.",
-        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report",
+        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report, pi contract-check",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -160,6 +161,25 @@ def _build_parser() -> argparse.ArgumentParser:
         "audit_report_path", help="path to saved enterprise audit report JSON"
     )
     verify_report_parser.set_defaults(func=_cmd_audit_verify_report)
+
+    pi_parser = subparsers.add_parser(
+        "pi", help="run static Pi boundary contract checks"
+    )
+    pi_subparsers = pi_parser.add_subparsers(dest="pi_command", required=True)
+    contract_check_parser = pi_subparsers.add_parser(
+        "contract-check",
+        help="validate static Pi-like tool-call observations against AgentHarness evidence",
+    )
+    contract_check_parser.add_argument(
+        "observations_path", help="path to static Pi-like observation JSON"
+    )
+    contract_check_parser.add_argument(
+        "expectations_path", help="path to expected mapping JSON"
+    )
+    contract_check_parser.add_argument(
+        "bus_root", help="path to registry-backed AgentHarness file-bus directory"
+    )
+    contract_check_parser.set_defaults(func=_cmd_pi_contract_check)
     return parser
 
 
@@ -301,6 +321,16 @@ def _cmd_audit_verify_report(args: argparse.Namespace) -> int:
 
 def _cmd_audit_checklist(args: argparse.Namespace) -> int:
     payload = build_enterprise_audit_checklist(args.bus_root)
+    print(json.dumps(payload, indent=2, sort_keys=True))
+    return 0 if payload.get("ok") is True else 1
+
+
+def _cmd_pi_contract_check(args: argparse.Namespace) -> int:
+    payload = build_pi_tool_call_mapping_report(
+        args.observations_path,
+        args.expectations_path,
+        args.bus_root,
+    )
     print(json.dumps(payload, indent=2, sort_keys=True))
     return 0 if payload.get("ok") is True else 1
 
