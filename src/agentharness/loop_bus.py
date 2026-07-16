@@ -8,6 +8,7 @@ from typing import Any
 
 from .adapter_registry import validate_adapter_registry_binding
 from .approval_record import validate_approval_record
+from .audit_contract import sanitize_audit_message
 from .execution_handoff import validate_execution_handoff_report
 from .execution_preflight import validate_execution_preflight_report
 from .tool_gate import validate_tool_gate_report
@@ -148,16 +149,23 @@ def parse_ledger(path: str | Path) -> tuple[list[dict[str, Any]], ValidationRepo
 def validate_bus(bus_root: str | Path) -> ValidationReport:
     """Validate a file-bus fixture directory."""
 
-    root = Path(bus_root).resolve()
+    display_root = Path(bus_root)
+    root = display_root.resolve()
     report = ValidationReport()
     tasks_dir = root / "tasks"
     ledger_path = root / "ledger.jsonl"
 
     if not tasks_dir.is_dir():
-        report.error(str(tasks_dir), "tasks directory is missing")
+        report.error(
+            sanitize_audit_message(display_root / "tasks"),
+            "tasks directory is missing",
+        )
         return report
     if not ledger_path.is_file():
-        report.error(str(ledger_path), "ledger.jsonl is missing")
+        report.error(
+            sanitize_audit_message(display_root / "ledger.jsonl"),
+            "ledger.jsonl is missing",
+        )
         return report
 
     tasks: dict[str, dict[str, Any]] = {}

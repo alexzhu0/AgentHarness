@@ -5,8 +5,11 @@ from __future__ import annotations
 import argparse
 import json
 from pathlib import Path
+import re
+import sys
 from typing import Sequence
 
+from .audit_contract import sanitize_audit_message
 from .enterprise_audit_checklist import build_enterprise_audit_checklist
 from .enterprise_audit_report import (
     build_enterprise_audit_report,
@@ -25,6 +28,13 @@ from .handoff_inspector import (
     sanitize_handoff_inspection_messages,
 )
 from .loop_bus import validate_bus
+from .pi_evidence_contract_v1 import (
+    ContractValidationError,
+    MAX_JSON_DOCUMENT_BYTES,
+    evaluate_pi_evidence_request_v1,
+    parse_pi_observation_batch_json_v1,
+    rejected_response_v1,
+)
 from .pi_tool_call_mapping import build_pi_tool_call_mapping_report
 from .validate import ValidationReport, validate_policy
 from .yamlio import YamlLoadError, load_yaml
@@ -34,6 +44,7 @@ DEFAULT_SCHEMA = "schemas/agent_policy.schema.yaml"
 DEFAULT_POLICY = "examples/agent_policy.example.yaml"
 DEFAULT_SUITE = "evals/agent_safety_eval_suite.yaml"
 DEFAULT_CASES = "PI-001,PD-001,SEC-001"
+_ABSOLUTE_PATH_MARKER = re.compile(r"(^|[\s:'\"=(])(?:/|[A-Za-z]:[\\/]|\\\\)")
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -50,7 +61,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agentharness",
         description="Validate AgentHarness policy assets and run policy smoke evals.",
-        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report, pi contract-check",
+        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report, pi contract-check, pi evidence-evaluate-v1",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -180,6 +191,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "bus_root", help="path to registry-backed AgentHarness file-bus directory"
     )
     contract_check_parser.set_defaults(func=_cmd_pi_contract_check)
+    evidence_evaluate_parser = pi_subparsers.add_parser(
+        "evidence-evaluate-v1",
+        help="evaluate one versioned Pi observation batch from bounded stdin",
+    )
+    evidence_evaluate_parser.add_argument(
+        "bus_root", help="path to registry-backed AgentHarness file-bus directory"
+    )
+    evidence_evaluate_parser.set_defaults(func=_cmd_pi_evidence_evaluate_v1)
     return parser
 
 
@@ -254,11 +273,11 @@ def _cmd_handoff_inspect(args: argparse.Namespace) -> int:
 def _cmd_handoff_export(args: argparse.Namespace) -> int:
     package, report = build_handoff_export_package(args.bus_root)
     if not report.ok or package is None:
-        print(f"FAIL handoff export: {Path(args.bus_root)}")
+        print(f"FAIL handoff export: {_sanitize_failure_message(Path(args.bus_root))}")
         for error in report.errors:
-            print(f"ERROR {error}")
+            print(f"ERROR {_sanitize_failure_message(error)}")
         for warning in report.warnings:
-            print(f"WARN {warning}")
+            print(f"WARN {_sanitize_failure_message(warning)}")
         return 1
 
     print(json.dumps(package, indent=2, sort_keys=True))
@@ -268,11 +287,11 @@ def _cmd_handoff_export(args: argparse.Namespace) -> int:
 def _cmd_handoff_manifest(args: argparse.Namespace) -> int:
     manifest, report = build_handoff_export_manifest(args.bus_root)
     if not report.ok or manifest is None:
-        print(f"FAIL handoff manifest: {Path(args.bus_root)}")
+        print(f"FAIL handoff manifest: {_sanitize_failure_message(Path(args.bus_root))}")
         for error in report.errors:
-            print(f"ERROR {error}")
+            print(f"ERROR {_sanitize_failure_message(error)}")
         for warning in report.warnings:
-            print(f"WARN {warning}")
+            print(f"WARN {_sanitize_failure_message(warning)}")
         return 1
 
     print(json.dumps(manifest, indent=2, sort_keys=True))
@@ -335,6 +354,36 @@ def _cmd_pi_contract_check(args: argparse.Namespace) -> int:
     return 0 if payload.get("ok") is True else 1
 
 
+def _cmd_pi_evidence_evaluate_v1(args: argparse.Namespace) -> int:
+    stream = getattr(sys.stdin, "buffer", sys.stdin)
+    try:
+        raw = stream.read(MAX_JSON_DOCUMENT_BYTES + 1)
+    except (OSError, ValueError):
+        payload = rejected_response_v1(("request.invalid",))
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 2
+
+    try:
+        request = parse_pi_observation_batch_json_v1(raw)
+    except ContractValidationError as exc:
+        payload = rejected_response_v1(exc.codes)
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 2
+
+    try:
+        payload = evaluate_pi_evidence_request_v1(request, args.bus_root)
+    except (RecursionError, OverflowError):
+        payload = rejected_response_v1(("evaluation.depth_exceeded",))
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 1
+    except Exception:
+        payload = rejected_response_v1(("evaluation.internal_error",))
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 1
+    print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+    return 0
+
+
 def _minimal_audit_report_error_payload() -> dict:
     return {
         "version": "0.1.0",
@@ -369,8 +418,15 @@ def _print_loop_report(report, bus_root: Path) -> None:
     if report.ok:
         print(f"PASS loop bus validation: {bus_root}")
     else:
-        print(f"FAIL loop bus validation: {bus_root}")
+        print(f"FAIL loop bus validation: {_sanitize_failure_message(bus_root)}")
         for error in report.errors:
-            print(f"ERROR {error}")
+            print(f"ERROR {_sanitize_failure_message(error)}")
     for warning in report.warnings:
-        print(f"WARN {warning}")
+        print(f"WARN {_sanitize_failure_message(warning)}")
+
+
+def _sanitize_failure_message(value: object) -> str:
+    message = str(value)
+    if not _ABSOLUTE_PATH_MARKER.search(message):
+        return message
+    return sanitize_audit_message(message)

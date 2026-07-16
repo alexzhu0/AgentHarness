@@ -120,6 +120,31 @@ class HandoffManifestTests(unittest.TestCase):
         self.assertNotIn("/home/", output)
         self.assertFalse(_contains_absolute_path(payload))
 
+    def test_missing_bus_failure_contains_no_absolute_host_paths(self):
+        host_paths = (
+            "/home/reviewer/private/missing-bus",
+            "/tmp/reviewer/private/missing-bus",
+            "/Users/reviewer/private/missing-bus",
+            r"C:\Users\reviewer\private\missing-bus",
+            r"\\server\share\reviewer\missing-bus",
+        )
+        for missing_bus in host_paths:
+            with self.subTest(missing_bus=missing_bus):
+                code, output, _ = _run_cli(["handoff", "manifest", missing_bus])
+
+                self.assertEqual(1, code)
+                self.assertIn("FAIL handoff manifest:", output)
+                self.assertNotIn(missing_bus, output)
+                for marker in ("/home/", "/tmp/", "/Users/", "C:\\", r"\\server"):
+                    self.assertNotIn(marker, output)
+
+        code, output, _ = _run_cli(
+            ["handoff", "manifest", "fixtures/missing-bus"]
+        )
+
+        self.assertEqual(1, code)
+        self.assertIn("FAIL handoff manifest: fixtures/missing-bus", output)
+
     def test_direct_handoff_fixture_without_registry_binding_fails_manifest(self):
         manifest, report = build_handoff_export_manifest(DIRECT_HANDOFF_BUS_ROOT)
 

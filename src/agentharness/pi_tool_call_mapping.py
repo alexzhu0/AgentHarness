@@ -6,7 +6,12 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from .audit_contract import NOT_EXECUTED, VERSION, sanitize_audit_message
+from .audit_contract import (
+    NOT_EXECUTED,
+    SHA256_DIGEST_PATTERN,
+    VERSION,
+    sanitize_audit_message,
+)
 from .handoff_exporter import build_handoff_export_package
 from .handoff_manifest import build_handoff_export_manifest
 
@@ -259,6 +264,17 @@ def _derive_decision(
             f"malformed observation missing required field(s): {', '.join(missing)}",
             None,
             [f"observation: malformed missing {', '.join(missing)}"],
+        )
+
+    arguments_digest = observation.get("arguments_digest")
+    if not isinstance(arguments_digest, str) or not SHA256_DIGEST_PATTERN.fullmatch(
+        arguments_digest
+    ):
+        return (
+            "error",
+            "malformed observation has invalid arguments_digest",
+            None,
+            ["observation.arguments_digest: must match sha256:<64 lowercase hex characters>"],
         )
 
     tool_name = _string_value(observation.get("tool_name"))

@@ -4,21 +4,30 @@ Last checked date: 2026-07-07
 
 AgentHarness is a pre-execution evidence control-plane for agent actions.
 
+> **Supersession/current-baseline note (2026-07-12):** The T040 result below
+> remains historical six-test PoC evidence, including one positive fake read
+> execution. T058 supersedes any implication that this historical allow branch
+> is current: Pi production live mode sends current `beforeToolCall` data through
+> `evidence-evaluate-v1`, verifies exact current-call correlation, and blocks
+> every valid outcome, including synthetic correlated `allow_candidate`, with
+> `result_status: not_executed`. AgentHarness executes no tool; Pi owns runtime
+> enforcement.
+
 ## Scope
 
 T041 is a pause and review artifact. It is not implementation, not a Pi
 source change, and not a live integration step.
 
-AgentHarness remains a pre-execution evidence control-plane. Pi remains a
-future execution-plane candidate whose real tool behavior must stay behind a
-separate owner-approved plan.
+AgentHarness remains a pre-execution evidence control-plane. Pi owns runtime
+enforcement, and its current AgentHarness production live path blocks before
+real tool execution.
 
 This document records the stop line after T040: the controlled read-only PoC
 showed a narrow test seam, but it did not approve real Pi execution.
 
 ## Current proven chain
 
-The current Pi-facing evidence chain is:
+The historical Pi-facing evidence chain through T040 is:
 
 1. T034 boundary contract: AgentHarness and Pi responsibilities were separated.
 2. T035 static Pi-like mapping fixture: observations and expected decisions
@@ -46,6 +55,8 @@ The current stop line is intentionally strict:
 - No daemon, watcher, scheduler, or background service.
 - No broadening of `PI_AGENTHARNESS_READ_ONLY_POC` beyond the exact fake test
   case.
+- The T040 fake allow branch is historical and is not an input or authorization
+  path for T058 production live mode.
 
 ## Readiness decision
 

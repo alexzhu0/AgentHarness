@@ -57,6 +57,29 @@ T042 增加
 用于分类 T034-T041/T042 AgentHarness include/exclude set、Pi companion
 status 和未来 staging strategy；决策为 COMMENT，不做 commit 或 push。
 
+T056-T060 的当前里程碑入口如下：
+
+- T056 evidence-integrity 复核已接受；旧的 pending 文案不再适用。
+- T057 observation/evidence v1 contract 见
+  [`docs/24`](./24-pi-observation-evidence-contract-v1.md)。
+- T058 只把 Pi live hook 接到 block-only bridge；所有结果仍是
+  `not_executed`，不发生真实执行。
+- T059 仅用 fake Win9-named tools 验证 live shadow；不执行真实工具。
+- T060 runtime-authorization readiness ADR 见
+  [`docs/25`](./25-pi-runtime-authorization-readiness-adr.md)；
+  当前结论为 NO-GO、NOT IMPLEMENTED，不是 power-on 许可。
+- T061 no-commit handoff 见
+  [`docs/26`](./26-agentharness-pi-shadow-milestone-packaging.md)。
+- T062 Phase-0 preflight 见
+  [`docs/27`](./27-pi-runtime-authorization-phase0-preflight.md)；
+  它是 T060 的派生规划，结论仍为 NO-GO、NOT IMPLEMENTED。
+- 2026-07-13 release note 见
+  [`release/2026.07.13.md`](../release/2026.07.13.md)。
+
+AgentHarness 只提供 pre-execution evidence。Pi 或其他 external runtime
+拥有 authorization。`allow_candidate` 永不构成许可；当前 bridge 只会
+block，所有结果为 `not_executed`，没有真实执行。
+
 当前 file-bus MVP 入口：
 
 - 协议说明：[`docs/05-loop-file-bus.md`](./05-loop-file-bus.md)

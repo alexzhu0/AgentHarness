@@ -1,4 +1,6 @@
 from copy import deepcopy
+from contextlib import redirect_stdout
+from io import StringIO
 import json
 import os
 from pathlib import Path
@@ -17,6 +19,7 @@ from agentharness.loop_bus import (
     validate_event_chain,
     validate_task,
 )
+from agentharness.cli import main
 from agentharness.yamlio import load_yaml
 
 
@@ -61,6 +64,33 @@ class LoopBusTests(unittest.TestCase):
         report = validate_bus(HANDOFF_BUS_ROOT)
 
         self.assertEqual([], report.errors)
+
+    def test_missing_bus_cli_sanitizes_absolute_path_and_keeps_relative_path(self):
+        host_paths = (
+            "/home/reviewer/private/missing-bus",
+            "/tmp/reviewer/private/missing-bus",
+            "/Users/reviewer/private/missing-bus",
+            r"C:\Users\reviewer\private\missing-bus",
+            r"\\server\share\reviewer\missing-bus",
+        )
+        for missing_bus in host_paths:
+            with self.subTest(missing_bus=missing_bus):
+                absolute_stdout = StringIO()
+                with redirect_stdout(absolute_stdout):
+                    absolute_code = main(["loop", "check", missing_bus])
+
+                absolute_output = absolute_stdout.getvalue()
+                self.assertEqual(1, absolute_code)
+                self.assertNotIn(missing_bus, absolute_output)
+                for marker in ("/home/", "/tmp/", "/Users/", "C:\\", r"\\server"):
+                    self.assertNotIn(marker, absolute_output)
+
+        relative_stdout = StringIO()
+        with redirect_stdout(relative_stdout):
+            relative_code = main(["loop", "check", "fixtures/missing-bus"])
+
+        self.assertEqual(1, relative_code)
+        self.assertIn("fixtures/missing-bus", relative_stdout.getvalue())
 
     def test_valid_fixture_passes_from_another_cwd(self):
         original_cwd = Path.cwd()
