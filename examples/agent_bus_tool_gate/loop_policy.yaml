@@ -1,0 +1,28 @@
+version: 0.1.0
+name: file_bus_loop_tool_gate_policy
+runtime_layout:
+  root: .agent_bus
+  ledger: .agent_bus/ledger.jsonl
+  tasks: .agent_bus/tasks
+  evidence: .agent_bus/evidence
+  reviews: .agent_bus/reviews
+  tool_gates: .agent_bus/tool_gates
+fixture_layout:
+  root: examples/agent_bus_tool_gate
+  ledger: examples/agent_bus_tool_gate/ledger.jsonl
+  tasks: examples/agent_bus_tool_gate/tasks
+  evidence: examples/agent_bus_tool_gate/evidence
+  reviews: examples/agent_bus_tool_gate/reviews
+  tool_gates: examples/agent_bus_tool_gate/tool_gates
+source_of_truth:
+  ledger_jsonl: true
+  tool_gate_reports_are_evidence: true
+  decisions_log: deferred
+tool_gate_validation:
+  policy_path: examples/agent_policy.example.yaml
+  governance_path: policies/tool_governance.yaml
+deferred_surfaces:
+  - daemon
+  - realtime_chat
+  - cli_task_commands
+  - tool_execution

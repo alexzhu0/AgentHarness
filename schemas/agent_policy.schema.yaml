@@ -126,6 +126,7 @@ tool_manifest:
         - none
         - low
         - medium
+        - variable
         - high
         - critical
     side_effects:
@@ -137,6 +138,7 @@ safety:
     - prompt_disclosure
     - secrets
     - destructive_ops
+    - external_communication
     - untrusted_content
   fields:
     prompt_disclosure:
@@ -155,6 +157,12 @@ safety:
           type: enum
           values: [required, optional]
     destructive_ops:
+      type: object
+      fields:
+        default_action:
+          type: enum
+          values: [require_explicit_approval, deny]
+    external_communication:
       type: object
       fields:
         default_action:

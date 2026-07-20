@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentharness:schema:pi-tool-call-observation-batch:1",
+  "title": "AgentHarness Pi tool-call observation batch v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "contract_id",
+    "kind",
+    "source",
+    "result_status",
+    "adapter_contract",
+    "batch"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "urn:agentharness:schema:pi-tool-call-observation-batch:1"
+    },
+    "contract_id": {
+      "const": "AH-PI-EVIDENCE-BINDING-1"
+    },
+    "kind": {
+      "const": "pi_tool_call_observation_batch"
+    },
+    "source": {
+      "const": "pi_pure_observation_builder_v1"
+    },
+    "result_status": {
+      "const": "not_executed"
+    },
+    "adapter_contract": {
+      "$ref": "#/$defs/adapter_contract"
+    },
+    "batch": {
+      "$ref": "#/$defs/batch"
+    }
+  },
+  "$defs": {
+    "status": {
+      "const": "not_executed"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^(?!.*(?:^|[._:@+-])(?:sk(?:-proj)?[-_]|gh[porus]_|github_pat_|AKIA|ASIA|eyJ))[A-Za-z0-9][A-Za-z0-9._:@+-]{0,191}$"
+    },
+    "adapter_contract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "adapter_id",
+        "adapter_version",
+        "result_status"
+      ],
+      "properties": {
+        "adapter_id": {
+          "$ref": "#/$defs/token"
+        },
+        "adapter_version": {
+          "$ref": "#/$defs/token"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_id",
+        "batch_id_contract_id",
+        "order_contract_id",
+        "result_status",
+        "observations"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": "string",
+          "pattern": "^pi-batch:[0-9a-f]{64}$"
+        },
+        "batch_id_contract_id": {
+          "const": "AH-PI-BATCH-ID-1"
+        },
+        "order_contract_id": {
+          "const": "AH-PI-BATCH-ORDER-1"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/observation"
+          }
+        }
+      }
+    },
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "order_index",
+        "result_status",
+        "call_binding",
+        "mapping_claim"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "pattern": "^pi-observation:[0-9a-f]{64}:[0-9]{6}$"
+        },
+        "order_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        },
+        "call_binding": {
+          "$ref": "#/$defs/call_binding"
+        },
+        "mapping_claim": {
+          "$ref": "#/$defs/mapping_claim"
+        }
+      }
+    },
+    "call_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_call_id",
+        "tool_name",
+        "arguments_canonicalization_id",
+        "arguments_digest",
+        "result_status"
+      ],
+      "properties": {
+        "tool_call_id": {
+          "$ref": "#/$defs/token"
+        },
+        "tool_name": {
+          "$ref": "#/$defs/token"
+        },
+        "arguments_canonicalization_id": {
+          "const": "AH-ARGS-C14N-1"
+        },
+        "arguments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "mapping_claim": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_name_candidate",
+        "category_candidate",
+        "intent_candidate",
+        "target_scope_candidate",
+        "result_status"
+      ],
+      "properties": {
+        "tool_name_candidate": {
+          "$ref": "#/$defs/token"
+        },
+        "category_candidate": {
+          "enum": [
+            "file_read",
+            "file_write",
+            "file_delete",
+            "shell",
+            "unknown"
+          ]
+        },
+        "intent_candidate": {
+          "enum": [
+            "inspect_workspace",
+            "inspect_config",
+            "edit_file",
+            "delete_file",
+            "run_tests",
+            "unknown"
+          ]
+        },
+        "target_scope_candidate": {
+          "enum": [
+            "repository",
+            "outside_repository",
+            "unknown"
+          ]
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    }
+  }
+}
