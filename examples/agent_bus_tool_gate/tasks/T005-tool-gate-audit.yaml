@@ -1,0 +1,48 @@
+id: T005-tool-gate-audit
+title: Validate loop tool gate audit fixture
+owner: executor
+status: completed
+objective:
+  ref: T005-tool-gate-audit#objective
+  statement: Prove that a loop executor can attach a structured, side-effect-free tool gate report as evidence.
+acceptance_criteria:
+  - Ledger contains the normal assigned to completed lifecycle.
+  - Executor evidence references a tool gate report from executor_done only.
+  - Tool gate report records allow, approval_required, and deny decisions.
+  - Tool gate report records every decision as not_executed.
+constraints:
+  - Do not execute tools.
+  - Do not add daemon behavior.
+  - Do not add scheduler behavior.
+  - Do not add task mutation CLI.
+verification:
+  commands:
+    - PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus_tool_gate
+    - PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=src python3 -m unittest discover -s tests
+retry_policy:
+  max_attempts: 3
+  require_new_failure_hypothesis: true
+failure_classes:
+  allowed:
+    - verification_failed
+    - baseline_drift
+    - policy_violation
+    - missing_evidence
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+  automatic_retry:
+    - verification_failed
+    - baseline_drift
+    - missing_evidence
+  escalate:
+    - policy_violation
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+audit:
+  ledger_path: ledger.jsonl
+  evidence_dir: evidence
+  review_dir: reviews
+  tool_gate_dir: tool_gates
+  objective_ref: T005-tool-gate-audit#objective

@@ -1,0 +1,28 @@
+version: 0.1.0
+kind: approval_record
+approval_id: APR-T007-001
+task_id: T007-execution-preflight
+objective_ref: T007-execution-preflight#objective
+attempt: 1
+decision: approved
+result_status: not_executed
+approver:
+  actor: user
+  id: local-user
+  channel: local_review
+subject:
+  tool_gate_report_path: tool_gates/T007-attempt-1.yaml
+  request_id: TR-approve-delete
+  decision_digest: sha256:85118d280f552a5a054c16eff9cba7a010cc04e97105729c0de255f25c34c8f4
+  expected_decision: approval_required
+scope:
+  tool_name: delete_file
+  category: file_delete
+  intent: delete_file
+  target_scope: repository
+  constraints:
+    - exact_request_id_only
+    - no_other_delete_targets
+    - approval_does_not_execute_tool
+    - preflight_still_does_not_execute
+reason: User approved this exact delete-file request for preflight only.

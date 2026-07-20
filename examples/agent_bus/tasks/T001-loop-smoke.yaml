@@ -1,0 +1,47 @@
+id: T001-loop-smoke
+title: Validate file-bus loop smoke fixture
+owner: executor
+status: completed
+objective:
+  ref: T001-loop-smoke#objective
+  statement: Prove that the file-bus MVP can represent one task from creation through review completion.
+acceptance_criteria:
+  - Task YAML contains a stable objective reference.
+  - Ledger contains append-only events from assigned to completed.
+  - Executor evidence is recorded as data, not as authority.
+  - Designer review closes the task only after evidence is referenced.
+constraints:
+  - Do not add daemon behavior.
+  - Do not add realtime chat.
+  - Do not add CLI task commands.
+verification:
+  commands:
+    - PYTHONPATH=src python3 -m unittest discover -s tests
+    - ./agentharness validate examples/agent_policy.example.yaml
+    - ./agentharness eval --cases PI-001,PD-001,SEC-001
+retry_policy:
+  max_attempts: 3
+  require_new_failure_hypothesis: true
+failure_classes:
+  allowed:
+    - verification_failed
+    - baseline_drift
+    - policy_violation
+    - missing_evidence
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+  automatic_retry:
+    - verification_failed
+    - baseline_drift
+    - missing_evidence
+  escalate:
+    - policy_violation
+    - objective_mismatch
+    - invalid_ledger
+    - repeated_failure_without_new_hypothesis
+audit:
+  ledger_path: ledger.jsonl
+  evidence_dir: evidence
+  review_dir: reviews
+  objective_ref: T001-loop-smoke#objective

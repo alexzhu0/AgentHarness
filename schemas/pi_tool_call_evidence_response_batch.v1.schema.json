@@ -1,0 +1,699 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:agentharness:schema:pi-tool-call-evidence-response-batch:1",
+  "title": "AgentHarness Pi evidence response batch v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_id",
+    "request_schema_id",
+    "contract_id",
+    "kind",
+    "source",
+    "result_status",
+    "evidence_snapshot",
+    "batch",
+    "summary",
+    "errors",
+    "warnings"
+  ],
+  "properties": {
+    "schema_id": {
+      "const": "urn:agentharness:schema:pi-tool-call-evidence-response-batch:1"
+    },
+    "request_schema_id": {
+      "const": "urn:agentharness:schema:pi-tool-call-observation-batch:1"
+    },
+    "contract_id": {
+      "const": "AH-PI-EVIDENCE-BINDING-1"
+    },
+    "kind": {
+      "const": "agentharness_pi_evidence_response_batch"
+    },
+    "source": {
+      "const": "agentharness_pi_evidence_evaluator_v1"
+    },
+    "result_status": {
+      "$ref": "#/$defs/status"
+    },
+    "evidence_snapshot": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "$ref": "#/$defs/snapshot"
+        }
+      ]
+    },
+    "batch": {
+      "$ref": "#/$defs/batch"
+    },
+    "summary": {
+      "$ref": "#/$defs/summary"
+    },
+    "errors": {
+      "$ref": "#/$defs/messages"
+    },
+    "warnings": {
+      "$ref": "#/$defs/messages"
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "batch": {
+            "properties": {
+              "evaluation_status": {
+                "const": "rejected"
+              }
+            },
+            "required": [
+              "evaluation_status"
+            ]
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "evidence_snapshot": {
+            "type": "null"
+          },
+          "errors": {
+            "$ref": "#/$defs/rejected_messages"
+          },
+          "warnings": {
+            "maxItems": 0
+          },
+          "batch": {
+            "properties": {
+              "batch_id": {
+                "type": "null"
+              },
+              "results": {
+                "maxItems": 0
+              }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "evidence_snapshot": {
+            "$ref": "#/$defs/snapshot"
+          },
+          "errors": {
+            "maxItems": 0
+          },
+          "warnings": {
+            "maxItems": 0
+          },
+          "batch": {
+            "properties": {
+              "batch_id": {
+                "type": "string",
+                "pattern": "^pi-batch:[0-9a-f]{64}$"
+              },
+              "results": {
+                "minItems": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "status": {
+      "const": "not_executed"
+    },
+    "token": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 192,
+      "pattern": "^(?!.*(?:^|[._:@+-])(?:sk(?:-proj)?[-_]|gh[porus]_|github_pat_|AKIA|ASIA|eyJ))[A-Za-z0-9][A-Za-z0-9._:@+-]{0,191}$"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "nullable_digest": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "messages": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true
+    },
+    "rejected_messages": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 1,
+      "uniqueItems": true,
+      "items": {
+        "enum": [
+          "request.invalid",
+          "request.depth_exceeded",
+          "request.cycle_detected",
+          "snapshot.invalid",
+          "snapshot.bus_unreadable",
+          "snapshot.resource_limit",
+          "snapshot.file_unreadable",
+          "snapshot.file_changed",
+          "snapshot.symlink_not_allowed",
+          "snapshot.structured_file_malformed",
+          "snapshot.evidence_chain_invalid",
+          "evaluation.depth_exceeded",
+          "evaluation.internal_error"
+        ]
+      }
+    },
+    "snapshot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "snapshot_contract_id",
+        "snapshot_digest",
+        "result_status"
+      ],
+      "properties": {
+        "snapshot_contract_id": {
+          "const": "AH-EVIDENCE-SNAPSHOT-1"
+        },
+        "snapshot_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "batch": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "batch_id",
+        "batch_id_contract_id",
+        "order_contract_id",
+        "evaluation_status",
+        "result_status",
+        "results"
+      ],
+      "properties": {
+        "batch_id": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^pi-batch:[0-9a-f]{64}$"
+        },
+        "batch_id_contract_id": {
+          "const": "AH-PI-BATCH-ID-1"
+        },
+        "order_contract_id": {
+          "const": "AH-PI-BATCH-ORDER-1"
+        },
+        "evaluation_status": {
+          "enum": [
+            "complete",
+            "rejected"
+          ]
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        },
+        "results": {
+          "type": "array",
+          "maxItems": 32,
+          "items": {
+            "$ref": "#/$defs/result"
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "observation_id",
+        "order_index",
+        "result_status",
+        "binding_echo",
+        "mapping_claim_echo",
+        "decision",
+        "reason_code",
+        "evidence_binding",
+        "errors",
+        "warnings"
+      ],
+      "properties": {
+        "observation_id": {
+          "type": "string",
+          "pattern": "^pi-observation:[0-9a-f]{64}:[0-9]{6}$"
+        },
+        "order_index": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 31
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        },
+        "binding_echo": {
+          "$ref": "#/$defs/binding_echo"
+        },
+        "mapping_claim_echo": {
+          "$ref": "#/$defs/mapping_echo"
+        },
+        "decision": {
+          "enum": [
+            "allow_candidate",
+            "block",
+            "unsupported",
+            "error"
+          ]
+        },
+        "reason_code": {
+          "enum": [
+            "unique_ready_evidence_match",
+            "unique_blocked_evidence_match",
+            "unique_unsupported_evidence_match",
+            "no_semantic_evidence_match",
+            "ambiguous_evidence_match",
+            "mapping_claim_not_independently_derivable"
+          ]
+        },
+        "evidence_binding": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "$ref": "#/$defs/evidence_binding"
+            }
+          ]
+        },
+        "errors": {
+          "type": "array",
+          "maxItems": 1,
+          "items": {
+            "enum": [
+              "ambiguous_evidence_match",
+              "mapping_claim_not_independently_derivable"
+            ]
+          }
+        },
+        "warnings": {
+          "type": "array",
+          "maxItems": 0
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "allow_candidate"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason_code": {
+                "const": "unique_ready_evidence_match"
+              },
+              "evidence_binding": {
+                "$ref": "#/$defs/ready_evidence_binding"
+              },
+              "errors": {
+                "type": "array",
+                "maxItems": 0,
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "block"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "properties": {
+              "reason_code": {
+                "const": "unique_blocked_evidence_match"
+              },
+              "evidence_binding": {
+                "$ref": "#/$defs/nonexport_evidence_binding"
+              },
+              "errors": {
+                "type": "array",
+                "maxItems": 0,
+                "uniqueItems": true
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "unsupported"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "reason_code": {
+                    "const": "unique_unsupported_evidence_match"
+                  },
+                  "evidence_binding": {
+                    "$ref": "#/$defs/nonexport_evidence_binding"
+                  },
+                  "errors": {
+                    "type": "array",
+                    "maxItems": 0,
+                    "uniqueItems": true
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "reason_code": {
+                    "const": "no_semantic_evidence_match"
+                  },
+                  "evidence_binding": {
+                    "type": "null"
+                  },
+                  "errors": {
+                    "type": "array",
+                    "maxItems": 0,
+                    "uniqueItems": true
+                  }
+                }
+              }
+            ]
+          }
+        },
+        {
+          "if": {
+            "properties": {
+              "decision": {
+                "const": "error"
+              }
+            },
+            "required": [
+              "decision"
+            ]
+          },
+          "then": {
+            "oneOf": [
+              {
+                "properties": {
+                  "reason_code": {
+                    "const": "ambiguous_evidence_match"
+                  },
+                  "evidence_binding": {
+                    "type": "null"
+                  },
+                  "errors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "const": "ambiguous_evidence_match"
+                    }
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "reason_code": {
+                    "const": "mapping_claim_not_independently_derivable"
+                  },
+                  "evidence_binding": {
+                    "type": "null"
+                  },
+                  "errors": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 1,
+                    "uniqueItems": true,
+                    "items": {
+                      "const": "mapping_claim_not_independently_derivable"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    "binding_echo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_call_id",
+        "tool_name",
+        "arguments_canonicalization_id",
+        "arguments_digest",
+        "result_status"
+      ],
+      "properties": {
+        "tool_call_id": {
+          "$ref": "#/$defs/token"
+        },
+        "tool_name": {
+          "$ref": "#/$defs/token"
+        },
+        "arguments_canonicalization_id": {
+          "const": "AH-ARGS-C14N-1"
+        },
+        "arguments_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "mapping_echo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "tool_name_candidate",
+        "category_candidate",
+        "intent_candidate",
+        "target_scope_candidate",
+        "result_status"
+      ],
+      "properties": {
+        "tool_name_candidate": {
+          "$ref": "#/$defs/token"
+        },
+        "category_candidate": {
+          "enum": [
+            "file_read",
+            "file_write",
+            "file_delete",
+            "shell",
+            "unknown"
+          ]
+        },
+        "intent_candidate": {
+          "enum": [
+            "inspect_workspace",
+            "inspect_config",
+            "edit_file",
+            "delete_file",
+            "run_tests",
+            "unknown"
+          ]
+        },
+        "target_scope_candidate": {
+          "enum": [
+            "repository",
+            "outside_repository",
+            "unknown"
+          ]
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "evidence_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "handoff_id",
+        "handoff_digest",
+        "export_item_digest",
+        "export_package_digest",
+        "adapter_spec_digest",
+        "result_status"
+      ],
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/token"
+        },
+        "handoff_id": {
+          "$ref": "#/$defs/token"
+        },
+        "handoff_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "export_item_digest": {
+          "$ref": "#/$defs/nullable_digest"
+        },
+        "export_package_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "adapter_spec_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "total",
+        "allow_candidate",
+        "block",
+        "unsupported",
+        "error",
+        "result_status"
+      ],
+      "properties": {
+        "total": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "allow_candidate": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "block": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "unsupported": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "error": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 32
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "ready_evidence_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "handoff_id",
+        "handoff_digest",
+        "export_item_digest",
+        "export_package_digest",
+        "adapter_spec_digest",
+        "result_status"
+      ],
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/token"
+        },
+        "handoff_id": {
+          "$ref": "#/$defs/token"
+        },
+        "handoff_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "export_item_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "export_package_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "adapter_spec_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    },
+    "nonexport_evidence_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "request_id",
+        "handoff_id",
+        "handoff_digest",
+        "export_item_digest",
+        "export_package_digest",
+        "adapter_spec_digest",
+        "result_status"
+      ],
+      "properties": {
+        "request_id": {
+          "$ref": "#/$defs/token"
+        },
+        "handoff_id": {
+          "$ref": "#/$defs/token"
+        },
+        "handoff_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "export_item_digest": {
+          "type": "null"
+        },
+        "export_package_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "adapter_spec_digest": {
+          "$ref": "#/$defs/digest"
+        },
+        "result_status": {
+          "$ref": "#/$defs/status"
+        }
+      }
+    }
+  }
+}

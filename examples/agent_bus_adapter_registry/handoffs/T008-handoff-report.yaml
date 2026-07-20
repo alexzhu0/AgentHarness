@@ -1,0 +1,269 @@
+version: 0.1.0
+kind: execution_handoff_report
+task_id: T008-execution-boundary
+objective_ref: T008-execution-boundary#objective
+attempt: 1
+result_status: not_executed
+source: build_execution_handoff
+tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+preflight_report_path: preflight/T008-preflight-report.yaml
+adapter_spec_path: adapters/pi-tool-call-v0.yaml
+adapter_registry_path: adapters/registry.yaml
+adapter_ref:
+  adapter_id: pi-tool-call-v0
+  adapter_version: 0.1.0
+  adapter_spec_digest: sha256:ca33d2420c97e891b5d8a710334a8757c9f70413aa94d298d68aa913aabcc244
+policy_path: ../../examples/agent_policy.example.yaml
+governance_path: ../../policies/tool_governance.yaml
+summary:
+  total: 5
+  handoff_ready: 2
+  blocked: 2
+  unsupported: 1
+  result_status: not_executed
+handoffs:
+  - version: 0.1.0
+    kind: execution_handoff
+    handoff_id: HOFF-TR-read
+    task_id: T008-execution-boundary
+    objective_ref: T008-execution-boundary#objective
+    attempt: 1
+    request_id: TR-read
+    result_status: not_executed
+    source: build_execution_handoff
+    subject:
+      tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+      preflight_report_path: preflight/T008-preflight-report.yaml
+      approval_record_path: null
+      tool_gate_digest: sha256:f80c26a41e2681636fcb02757432d6379a7af7b39883db8ed9f2139fe3a35398
+      preflight_digest: sha256:5e5e17705ccbd03e788c1f3c7e54336228cb4ac8ec75daf5bad881e108e63abd
+      approval_digest: null
+      expected_preflight_decision: ready_without_approval
+    adapter:
+      adapter_id: pi-tool-call-v0
+      adapter_kind: tool_call_hook
+      adapter_version: 0.1.0
+      hook: tool_call
+      supports:
+        tool_names:
+          - read_file
+          - delete_file
+        categories:
+          - file_read
+          - file_delete
+        intents:
+          - inspect_workspace
+          - delete_file
+        target_scopes:
+          - repository
+    control_plane:
+      policy_path: ../../examples/agent_policy.example.yaml
+      governance_path: ../../policies/tool_governance.yaml
+      runtime_boundary: handoff_only
+    request:
+      tool_name: read_file
+      category: file_read
+      intent: inspect_workspace
+      target_scope: repository
+    gate:
+      handoff_ready: true
+      blocked_reason: null
+      unsupported_reason: null
+      execution_allowed_by_preflight: true
+      result_status: not_executed
+  - version: 0.1.0
+    kind: execution_handoff
+    handoff_id: HOFF-TR-approve-delete
+    task_id: T008-execution-boundary
+    objective_ref: T008-execution-boundary#objective
+    attempt: 1
+    request_id: TR-approve-delete
+    result_status: not_executed
+    source: build_execution_handoff
+    subject:
+      tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+      preflight_report_path: preflight/T008-preflight-report.yaml
+      approval_record_path: approvals/T008-delete-file-approval.yaml
+      tool_gate_digest: sha256:85118d280f552a5a054c16eff9cba7a010cc04e97105729c0de255f25c34c8f4
+      preflight_digest: sha256:930702292001c8563ddf66bb0079a31cf9eedfbfb731b6ec0a995002c1be6053
+      approval_digest: sha256:554ffc3a7c8dd0cb1ff46df011d8144bf2fa673d315e870d699c4cbba11f164c
+      expected_preflight_decision: ready_with_approval
+    adapter:
+      adapter_id: pi-tool-call-v0
+      adapter_kind: tool_call_hook
+      adapter_version: 0.1.0
+      hook: tool_call
+      supports:
+        tool_names:
+          - read_file
+          - delete_file
+        categories:
+          - file_read
+          - file_delete
+        intents:
+          - inspect_workspace
+          - delete_file
+        target_scopes:
+          - repository
+    control_plane:
+      policy_path: ../../examples/agent_policy.example.yaml
+      governance_path: ../../policies/tool_governance.yaml
+      runtime_boundary: handoff_only
+    request:
+      tool_name: delete_file
+      category: file_delete
+      intent: delete_file
+      target_scope: repository
+    gate:
+      handoff_ready: true
+      blocked_reason: null
+      unsupported_reason: null
+      execution_allowed_by_preflight: true
+      result_status: not_executed
+  - version: 0.1.0
+    kind: execution_handoff
+    handoff_id: HOFF-TR-read-unsupported-intent
+    task_id: T008-execution-boundary
+    objective_ref: T008-execution-boundary#objective
+    attempt: 1
+    request_id: TR-read-unsupported-intent
+    result_status: not_executed
+    source: build_execution_handoff
+    subject:
+      tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+      preflight_report_path: preflight/T008-preflight-report.yaml
+      approval_record_path: null
+      tool_gate_digest: sha256:d231645493d551c5fb2042e9be99cb40b5679547ee893a7fbd63c136a2bd07bd
+      preflight_digest: sha256:2788dc685eb566719030bdc2f0611dc909af4e583b9ae689ea1e8ab7e7092e17
+      approval_digest: null
+      expected_preflight_decision: ready_without_approval
+    adapter:
+      adapter_id: pi-tool-call-v0
+      adapter_kind: tool_call_hook
+      adapter_version: 0.1.0
+      hook: tool_call
+      supports:
+        tool_names:
+          - read_file
+          - delete_file
+        categories:
+          - file_read
+          - file_delete
+        intents:
+          - inspect_workspace
+          - delete_file
+        target_scopes:
+          - repository
+    control_plane:
+      policy_path: ../../examples/agent_policy.example.yaml
+      governance_path: ../../policies/tool_governance.yaml
+      runtime_boundary: handoff_only
+    request:
+      tool_name: read_file
+      category: file_read
+      intent: inspect_config
+      target_scope: repository
+    gate:
+      handoff_ready: false
+      blocked_reason: null
+      unsupported_reason: unsupported_by_adapter
+      execution_allowed_by_preflight: true
+      result_status: not_executed
+  - version: 0.1.0
+    kind: execution_handoff
+    handoff_id: HOFF-TR-missing-approval-delete
+    task_id: T008-execution-boundary
+    objective_ref: T008-execution-boundary#objective
+    attempt: 1
+    request_id: TR-missing-approval-delete
+    result_status: not_executed
+    source: build_execution_handoff
+    subject:
+      tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+      preflight_report_path: preflight/T008-preflight-report.yaml
+      approval_record_path: null
+      tool_gate_digest: sha256:fd35c0f4cac70ac1d4d493d9bbcd463e47e04da96a7d2539317dc3b3a686ab7b
+      preflight_digest: sha256:37bf3f059743c5e7708dd661baae5304560cffc851dceaae1bd01e685d8ccd3a
+      approval_digest: null
+      expected_preflight_decision: blocked_missing_approval
+    adapter:
+      adapter_id: pi-tool-call-v0
+      adapter_kind: tool_call_hook
+      adapter_version: 0.1.0
+      hook: tool_call
+      supports:
+        tool_names:
+          - read_file
+          - delete_file
+        categories:
+          - file_read
+          - file_delete
+        intents:
+          - inspect_workspace
+          - delete_file
+        target_scopes:
+          - repository
+    control_plane:
+      policy_path: ../../examples/agent_policy.example.yaml
+      governance_path: ../../policies/tool_governance.yaml
+      runtime_boundary: handoff_only
+    request:
+      tool_name: delete_file
+      category: file_delete
+      intent: delete_file
+      target_scope: repository
+    gate:
+      handoff_ready: false
+      blocked_reason: blocked_missing_approval
+      unsupported_reason: null
+      execution_allowed_by_preflight: false
+      result_status: not_executed
+  - version: 0.1.0
+    kind: execution_handoff
+    handoff_id: HOFF-TR-deny-unknown
+    task_id: T008-execution-boundary
+    objective_ref: T008-execution-boundary#objective
+    attempt: 1
+    request_id: TR-deny-unknown
+    result_status: not_executed
+    source: build_execution_handoff
+    subject:
+      tool_gate_report_path: tool_gates/T008-attempt-1.yaml
+      preflight_report_path: preflight/T008-preflight-report.yaml
+      approval_record_path: null
+      tool_gate_digest: sha256:9a288775a6c53b32d47dec7c28eded1b295980e4a1455396b15c34cf3f6bf52d
+      preflight_digest: sha256:ca05087e6ecd091f600351b82bce5521d785871740761be68a664c2762e35757
+      approval_digest: null
+      expected_preflight_decision: blocked_by_policy
+    adapter:
+      adapter_id: pi-tool-call-v0
+      adapter_kind: tool_call_hook
+      adapter_version: 0.1.0
+      hook: tool_call
+      supports:
+        tool_names:
+          - read_file
+          - delete_file
+        categories:
+          - file_read
+          - file_delete
+        intents:
+          - inspect_workspace
+          - delete_file
+        target_scopes:
+          - repository
+    control_plane:
+      policy_path: ../../examples/agent_policy.example.yaml
+      governance_path: ../../policies/tool_governance.yaml
+      runtime_boundary: handoff_only
+    request:
+      tool_name: mystery_shell
+      category: shell
+      intent: run_tests
+      target_scope: repository
+    gate:
+      handoff_ready: false
+      blocked_reason: blocked_by_policy
+      unsupported_reason: null
+      execution_allowed_by_preflight: false
+      result_status: not_executed

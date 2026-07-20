@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentharness"
+version = "0.1.0"
+description = "Policy-as-code assets and smoke checks for agent runtime governance."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "PyYAML>=6.0",
+]
+
+[project.scripts]
+agentharness = "agentharness.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

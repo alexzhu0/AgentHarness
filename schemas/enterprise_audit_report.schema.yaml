@@ -1,0 +1,164 @@
+version: 0.1.0
+name: enterprise_audit_report_schema
+kind: conceptual_schema
+purpose: >-
+  Repo-native conceptual schema for the AgentHarness enterprise audit report
+  contract. It documents and supports pure in-memory validation of
+  pre-execution evidence payloads without adding a schema dependency.
+product_contract:
+  positioning: AgentHarness is a pre-execution evidence control-plane for agent actions.
+  invariant: AgentHarness validates and exports evidence only; external consumers own runtime, governance, auth, identity, sandbox, trust-root, and execution-plane responsibilities.
+  required_result_status: not_executed
+accepted_payload_kinds:
+  success: enterprise_audit_report
+  error: enterprise_audit_report_error
+success_contract:
+  kind: enterprise_audit_report
+  source: build_enterprise_audit_report
+  required_top_level_fields:
+    - version
+    - kind
+    - source
+    - result_status
+    - control_plane_boundary
+    - summary
+    - evidence_chain
+    - reports
+    - handoffs
+    - export
+    - manifest
+    - manifest_verification
+  forbidden_top_level_fields:
+    - ok
+    - evidence_envelope
+    - write_output
+    - runtime_adapter
+  unknown_top_level_fields_allowed: false
+  required_result_status: not_executed
+  control_plane_boundary:
+    unknown_fields_allowed: false
+    required:
+      execution_occurred: false
+      runtime_adapter_invoked: false
+      execution_owner: external
+      result_status: not_executed
+  evidence_chain_order:
+    - file_bus
+    - tool_gate
+    - approval_record
+    - preflight
+    - handoff
+    - adapter_registry
+    - export_package
+    - digest_manifest
+    - manifest_verification
+  summary:
+    unknown_fields_allowed: false
+    required_counts:
+      reports: integer_non_negative
+      total_handoffs: integer_non_negative
+      handoff_ready: integer_non_negative
+      exported: integer_non_negative
+      blocked: integer_non_negative
+      unsupported: integer_non_negative
+    result_status: not_executed
+  handoff_invariants:
+    exported_items_must_have_handoff_status: handoff_ready
+    blocked_handoffs_must_not_be_exported: true
+    unsupported_handoffs_must_not_be_exported: true
+    result_status: not_executed
+  export_contract:
+    unknown_fields_allowed: false
+    kind: handoff_export_package
+    source: build_handoff_export_package
+    exported_request_ids: list[string]
+    result_status: not_executed
+    invariant: exported_request_ids must match exported handoff order.
+  manifest_contract:
+    unknown_fields_allowed: false
+    kind: handoff_export_manifest
+    source: build_handoff_export_manifest
+    package_kind: handoff_export_package
+    package_digest: sha256 prefix followed by 64 lowercase hex characters
+    item_request_ids: list[string]
+    result_status: not_executed
+    invariant: item_request_ids must match export.exported_request_ids.
+  manifest_verification_boundary_note:
+    unknown_fields_allowed: false
+    performed: false
+    reason: requires_saved_manifest_path
+    command: agentharness handoff verify-manifest <bus_root> <manifest_path>
+    result_status: not_executed
+error_contract:
+  kind: enterprise_audit_report_error
+  source: build_enterprise_audit_report
+  unknown_top_level_fields_allowed: false
+  required_top_level_fields:
+    - version
+    - kind
+    - source
+    - ok
+    - result_status
+    - errors
+    - warnings
+  required_values:
+    ok: false
+    result_status: not_executed
+  errors: non_empty_list[string]
+  warnings: list[string]
+  sanitization_invariants:
+    no_raw_posix_paths: true
+    no_raw_windows_drive_paths: true
+    no_raw_unc_paths: true
+    no_raw_escaped_unc_paths: true
+    ordinary_urls_remain_allowed: true
+verification_report_contract:
+  kind: enterprise_audit_report_verification_report
+  source: verify_enterprise_audit_report
+  required_result_status: not_executed
+  ok_values:
+    - true
+    - false
+  report_kind: enterprise_audit_report
+  digest_fields:
+    expected_report_digest: sha256 prefix followed by 64 lowercase hex characters when expected report is available
+    saved_report_digest: sha256 prefix followed by 64 lowercase hex characters when saved report is available
+  summary:
+    required:
+      - reports
+      - handoffs
+      - matched_handoffs
+      - mismatched_handoffs
+      - missing_handoffs
+      - extra_handoffs
+      - result_status
+    result_status: not_executed
+  item_contract:
+    kind: enterprise_audit_report_verification_item
+    required:
+      - request_id
+      - ok
+      - expected_handoff_status
+      - saved_handoff_status
+      - expected_exported
+      - saved_exported
+      - result_status
+    result_status: not_executed
+  boundary: readback verification only; not runtime execution, adapter invocation, file output, signing, timestamping, attestation, trust-root, auth, governance enforcement, dispatch, submit, run, execute, or task mutation.
+non_goals:
+  - not a runtime execution schema
+  - not an adapter invocation contract
+  - not a tool execution receipt
+  - not a file writing or saved output behavior
+  - not signing, timestamp, attestation, certificate, notarization, or trust-root material
+  - not auth, identity, sandbox, or governance enforcement
+  - not an evidence envelope, signature bundle, or external trust bundle
+validator_contract:
+  function: validate_enterprise_audit_report_payload
+  location: src/agentharness/enterprise_audit_report.py
+  purity:
+    reads_files: false
+    writes_files: false
+    calls_builders: false
+    calls_cli: false
+    invokes_runtime_adapters: false

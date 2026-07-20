@@ -1,0 +1,10 @@
+version: 0.1.0
+kind: runtime_adapter_registry
+entries:
+  - adapter_id: pi-tool-call-v0
+    adapter_kind: tool_call_hook
+    adapter_version: 0.1.0
+    execution_plane: external
+    status: active
+    adapter_spec_path: adapters/pi-tool-call-v0.yaml
+    adapter_spec_digest: sha256:ca33d2420c97e891b5d8a710334a8757c9f70413aa94d298d68aa913aabcc244

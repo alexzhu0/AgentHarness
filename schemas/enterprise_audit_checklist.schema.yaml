@@ -1,0 +1,115 @@
+version: 0.1.0
+name: enterprise_audit_checklist_schema
+kind: conceptual_schema
+purpose: >-
+  Repo-native conceptual schema for the AgentHarness enterprise audit checklist
+  report contract. It documents and supports pure in-memory validation of
+  reviewer goal/check payloads without adding a schema dependency.
+product_contract:
+  positioning: AgentHarness is a pre-execution evidence control-plane for agent actions.
+  invariant: AgentHarness validates and exports evidence only; external consumers own runtime, governance, auth, identity, sandbox, trust-root, and execution-plane responsibilities.
+  required_result_status: not_executed
+accepted_payload_kind: enterprise_audit_checklist_report
+contract:
+  kind: enterprise_audit_checklist_report
+  source: build_enterprise_audit_checklist
+  unknown_top_level_fields_allowed: false
+  required_top_level_fields:
+    - version
+    - kind
+    - source
+    - result_status
+    - ok
+    - goal
+    - summary
+    - checks
+    - errors
+    - warnings
+  required_result_status: not_executed
+  ok_type: boolean
+  goal:
+    unknown_fields_allowed: false
+    required:
+      id: pre_execution_evidence_review
+      status: pass_or_fail
+      description: non_empty_string
+    allowed_statuses:
+      - pass
+      - fail
+  summary:
+    unknown_fields_allowed: false
+    required_counts:
+      checks: integer_non_negative
+      passed: integer_non_negative
+      failed: integer_non_negative
+      blocked: integer_non_negative
+      manual: integer_non_negative
+    optional_nullable_counts:
+      reports: integer_non_negative_or_null
+      total_handoffs: integer_non_negative_or_null
+      handoff_ready: integer_non_negative_or_null
+      exported: integer_non_negative_or_null
+      blocked_handoffs: integer_non_negative_or_null
+      unsupported: integer_non_negative_or_null
+    invariants:
+      checks: must equal length of checks array
+      passed: must equal count of pass checks
+      failed: must equal count of fail checks
+      blocked: must equal count of blocked checks
+      manual: must equal count of manual checks
+  checks:
+    ordered_ids:
+      - file_bus_validation
+      - handoff_inspection
+      - registry_backed_export
+      - digest_manifest
+      - enterprise_audit_report
+      - saved_manifest_readback
+      - saved_audit_report_readback
+    allowed_statuses:
+      - pass
+      - fail
+      - blocked
+      - manual
+    required_fields:
+      - id
+      - title
+      - status
+      - result_status
+      - errors
+      - warnings
+    non_manual_required_fields:
+      - evidence
+    manual_required_fields:
+      - command
+    manual_forbidden_fields:
+      - evidence
+    result_status: not_executed
+  manual_commands:
+    saved_manifest_readback: agentharness handoff verify-manifest <bus_root> <manifest_path>
+    saved_audit_report_readback: agentharness audit verify-report <bus_root> <audit_report_path>
+  errors: list[string]
+  warnings: list[string]
+  sanitization_invariants:
+    no_raw_posix_paths: true
+    no_raw_windows_drive_paths: true
+    no_raw_unc_paths: true
+    no_raw_escaped_unc_paths: true
+    ordinary_urls_remain_allowed: true
+non_goals:
+  - not a runtime execution schema
+  - not an adapter invocation contract
+  - not a tool execution receipt
+  - not a file writing or saved output behavior
+  - not signing, timestamp, attestation, certificate, notarization, or trust-root material
+  - not auth, identity, sandbox, or governance enforcement
+  - not an evidence envelope, signature bundle, or external trust bundle
+validator_contract:
+  function: validate_enterprise_audit_checklist_payload
+  location: src/agentharness/enterprise_audit_checklist.py
+  purity:
+    reads_files: false
+    writes_files: false
+    calls_builders: false
+    calls_cli: false
+    invokes_runtime_adapters: false

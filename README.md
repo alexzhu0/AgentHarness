@@ -2,7 +2,9 @@
 
 AgentHarness is an agent harness design repository inspired by CL4R1T4S-style system prompt and tool scaffold analysis.
 
-The goal is **not** to copy leaked or reverse-engineered prompts. The goal is to extract reusable engineering patterns and turn them into policy-driven, testable, auditable agent runtime assets.
+AgentHarness is a pre-execution evidence control-plane for agent actions.
+
+The goal is **not** to copy leaked or reverse-engineered prompts. The goal is to extract reusable engineering patterns and turn them into policy-driven, testable, auditable agent control-plane and runtime-boundary assets.
 
 ## Core Idea
 
@@ -124,6 +126,187 @@ This asset describes how to compile structured policy into:
 
 Start here: [`docs/00-asset-map.md`](docs/00-asset-map.md)
 
+Runtime architecture: [`docs/06-runtime-architecture.md`](docs/06-runtime-architecture.md)
+
+Enterprise positioning and boundary audit: [`docs/07-enterprise-positioning-and-boundary-audit.md`](docs/07-enterprise-positioning-and-boundary-audit.md)
+
+Glossary and product contract: [`docs/08-glossary-and-product-contract.md`](docs/08-glossary-and-product-contract.md)
+
+Source-backed integration strategy: [`docs/09-source-backed-integration-strategy.md`](docs/09-source-backed-integration-strategy.md)
+
+Enterprise audit report and buyer demo: [`docs/10-enterprise-audit-report-and-buyer-demo.md`](docs/10-enterprise-audit-report-and-buyer-demo.md)
+
+Reproducible enterprise demo: [`docs/11-reproducible-enterprise-demo.md`](docs/11-reproducible-enterprise-demo.md)
+
+Buyer/reviewer decision guide: [`docs/12-buyer-reviewer-decision-guide.md`](docs/12-buyer-reviewer-decision-guide.md)
+
+External reviewer checklist: [`docs/13-external-reviewer-checklist.md`](docs/13-external-reviewer-checklist.md)
+
+Reviewer dry-run and reproducibility: [`docs/14-reviewer-dry-run-and-reproducibility.md`](docs/14-reviewer-dry-run-and-reproducibility.md)
+
+Development loop operating model: [`docs/15-agentharness-development-loop-operating-model.md`](docs/15-agentharness-development-loop-operating-model.md)
+
+Phase E release readiness and packaging audit: [`docs/16-phase-e-release-readiness-and-packaging-audit.md`](docs/16-phase-e-release-readiness-and-packaging-audit.md)
+
+Pi integration boundary and contract planning doc only, not live Pi integration: [`docs/17-pi-integration-boundary-and-contract.md`](docs/17-pi-integration-boundary-and-contract.md)
+
+Pi tool-call mapping static fixture doc only, not live Pi integration: [`docs/18-pi-tool-call-mapping-fixture.md`](docs/18-pi-tool-call-mapping-fixture.md)
+
+Pi contract-check CLI doc for static fixture validation only, not live Pi integration: [`docs/19-pi-contract-check-cli.md`](docs/19-pi-contract-check-cli.md)
+
+Pi dual-repo dry-run E2E doc for opt-in local wiring only, not runtime allow: [`docs/20-pi-dual-repo-dry-run-e2e.md`](docs/20-pi-dual-repo-dry-run-e2e.md)
+
+Historical T040 controlled fake-read PoC evidence records one positive fake
+read execution. Accepted T056 evidence-integrity review supersedes that behavior
+with a block-only baseline: all tested cases block and fake-tool execution stays
+at zero:
+[`docs/21`](docs/21-pi-controlled-read-only-poc.md)
+
+Pi integration readiness pause review, not real execution approval:
+[`docs/22`](docs/22-pi-integration-readiness-pause-review.md)
+
+Pi milestone packaging audit, not a commit or release:
+[`docs/23`](docs/23-pi-milestone-packaging-audit.md)
+
+Pi observation/evidence contract v1, evidence-only and not runtime allow:
+[`docs/24`](docs/24-pi-observation-evidence-contract-v1.md)
+
+Pi runtime-authorization readiness ADR, currently NO-GO and NOT IMPLEMENTED:
+[`docs/25`](docs/25-pi-runtime-authorization-readiness-adr.md)
+
+T061 no-commit milestone packaging handoff:
+[`docs/26`](docs/26-agentharness-pi-shadow-milestone-packaging.md)
+
+T062 runtime-authorization Phase-0 preflight, derivative and still NO-GO:
+[`docs/27`](docs/27-pi-runtime-authorization-phase0-preflight.md)
+
+2026-07-13 documentation/package handoff note:
+[`release/2026.07.13.md`](release/2026.07.13.md)
+
+Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
+
+Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
+
+End-to-end evidence-chain regression harness: [`tests/test_end_to_end_evidence_chain.py`](tests/test_end_to_end_evidence_chain.py)
+
+## Minimal Executable Loop
+
+AgentHarness includes a small local CLI for keeping the YAML assets honest:
+
+```bash
+./agentharness validate examples/agent_policy.example.yaml
+./agentharness eval --cases PI-001,PD-001,SEC-001
+./agentharness loop check examples/agent_bus
+./agentharness loop check examples/agent_bus_tool_gate
+./agentharness loop check examples/agent_bus_approval
+./agentharness loop check examples/agent_bus_preflight
+./agentharness loop check examples/agent_bus_handoff
+./agentharness loop check examples/agent_bus_adapter_registry
+./agentharness handoff inspect examples/agent_bus_handoff
+./agentharness handoff inspect examples/agent_bus_adapter_registry
+./agentharness handoff inspect examples/agent_bus_handoff --json
+./agentharness handoff inspect examples/agent_bus_adapter_registry --json
+./agentharness handoff export examples/agent_bus_adapter_registry
+./agentharness handoff manifest examples/agent_bus_adapter_registry
+./agentharness handoff manifest examples/agent_bus_adapter_registry > /tmp/agentharness-manifest.json
+./agentharness handoff verify-manifest examples/agent_bus_adapter_registry /tmp/agentharness-manifest.json
+./agentharness audit report examples/agent_bus_adapter_registry
+./agentharness audit checklist examples/agent_bus_adapter_registry
+./agentharness audit report examples/agent_bus_adapter_registry > /tmp/agentharness-audit-report.json
+./agentharness audit verify-report examples/agent_bus_adapter_registry /tmp/agentharness-audit-report.json
+./agentharness pi contract-check examples/pi_tool_call_mapping/pi_tool_call_observations.json examples/pi_tool_call_mapping/expected_mapping.json examples/agent_bus_adapter_registry
+```
+
+The eval command is a mock policy smoke runner. It does not execute a model; it checks whether the current policy contains enforceable controls for the first prompt-injection, prompt-disclosure and secret-handling safety cases.
+
+The loop check command validates an existing file-bus directory against the
+loop protocol. It does not create, mutate, schedule, or execute tasks.
+
+The handoff inspect command validates the file bus first, then reads
+`execution_handoff_report_path` references from `designer_review` events and
+prints handoff readiness summaries. It is read-only: it does not call runtime
+adapters, mutate task state, or execute tools.
+
+The handoff export command validates the file bus first, then emits a
+deterministic JSON package for registry-backed, handoff-ready entries only. It
+writes JSON to stdout only; direct legacy `adapter_spec_path` handoff fixtures
+still validate but do not export.
+
+The handoff manifest command builds on that export package and emits a
+digest-addressed JSON manifest to stdout only. It names the full package and
+each exported ready item by canonical SHA-256 digest while preserving
+`result_status: not_executed`.
+
+The handoff verify-manifest command reads a saved T012 manifest JSON file,
+regenerates the expected manifest from the current bus, and emits a
+deterministic verification report to stdout on both pass and fail. It is a
+readback check, not a trust or runtime execution surface.
+
+The audit report command composes handoff inspection, registry-backed export,
+and digest manifest evidence into one deterministic enterprise audit JSON
+report. It writes JSON to stdout only, does not call manifest readback without a
+saved manifest path, self-checks the payload against the repo-native enterprise
+audit report schema, and keeps `result_status: not_executed`.
+
+The audit checklist command emits a deterministic goal/check status report
+for reviewer convenience. It summarizes file-bus validation, handoff inspection,
+registry-backed export, digest manifest, enterprise audit report self-check,
+and manual saved-artifact readback steps. It self-checks the payload against
+the repo-native enterprise audit checklist schema, writes JSON to stdout only,
+and keeps every checklist item `result_status: not_executed`.
+
+The audit verify-report command reads a saved enterprise audit report JSON,
+validates it with the repo-native audit report payload validator, regenerates
+the current report from the file bus, and emits deterministic readback
+verification JSON to stdout. It is not runtime execution, adapter invocation,
+signing, timestamping, trust-root behavior, task dispatch, or file-output mode.
+
+The pi contract-check command runs the T036 static Pi-like mapping validator
+over observation and expectation fixtures plus the registry-backed bus. It
+emits `pi_tool_call_mapping_validation_report` JSON to stdout only, returns 0
+only when `ok:true`, and keeps `allow_candidate` as candidate evidence rather
+than runtime allow or safe-to-execute approval.
+
+## File-Bus Loop MVP
+
+AgentHarness now includes a protocol-first file-bus loop MVP for two Codex terminals coordinating through repository files.
+
+- Protocol: [`docs/05-loop-file-bus.md`](docs/05-loop-file-bus.md)
+- Runtime architecture: [`docs/06-runtime-architecture.md`](docs/06-runtime-architecture.md)
+- Conceptual task schema: [`schemas/loop_task.schema.yaml`](schemas/loop_task.schema.yaml)
+- Versioned fixtures: [`examples/agent_bus/`](examples/agent_bus/)
+- Tool gate fixture: [`examples/agent_bus_tool_gate/`](examples/agent_bus_tool_gate/)
+- Approval record fixture: [`examples/agent_bus_approval/`](examples/agent_bus_approval/)
+- Execution preflight fixture: [`examples/agent_bus_preflight/`](examples/agent_bus_preflight/)
+- Execution handoff fixture: [`examples/agent_bus_handoff/`](examples/agent_bus_handoff/)
+- Adapter registry fixture: [`examples/agent_bus_adapter_registry/`](examples/agent_bus_adapter_registry/)
+- Validation helpers: [`src/agentharness/loop_bus.py`](src/agentharness/loop_bus.py)
+- Tool gate reports: [`src/agentharness/tool_gate.py`](src/agentharness/tool_gate.py)
+- Approval records: [`src/agentharness/approval_record.py`](src/agentharness/approval_record.py)
+- Execution preflight: [`src/agentharness/execution_preflight.py`](src/agentharness/execution_preflight.py)
+- Execution handoff: [`src/agentharness/execution_handoff.py`](src/agentharness/execution_handoff.py)
+- Adapter registry validation: [`src/agentharness/adapter_registry.py`](src/agentharness/adapter_registry.py)
+- Handoff export packages: [`src/agentharness/handoff_exporter.py`](src/agentharness/handoff_exporter.py)
+- Handoff export manifests: [`src/agentharness/handoff_manifest.py`](src/agentharness/handoff_manifest.py)
+- Enterprise audit reports: [`src/agentharness/enterprise_audit_report.py`](src/agentharness/enterprise_audit_report.py)
+- Enterprise audit checklist reports: [`src/agentharness/enterprise_audit_checklist.py`](src/agentharness/enterprise_audit_checklist.py)
+- Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
+- Enterprise audit checklist schema: [`schemas/enterprise_audit_checklist.schema.yaml`](schemas/enterprise_audit_checklist.schema.yaml)
+- End-to-end evidence-chain regression harness: [`tests/test_end_to_end_evidence_chain.py`](tests/test_end_to_end_evidence_chain.py)
+
+- CLI check: `./agentharness loop check examples/agent_bus`
+- Handoff inspector: `./agentharness handoff inspect examples/agent_bus_handoff`
+- Handoff export: `./agentharness handoff export examples/agent_bus_adapter_registry`
+- Handoff manifest: `./agentharness handoff manifest examples/agent_bus_adapter_registry`
+- Handoff manifest readback: `./agentharness handoff verify-manifest examples/agent_bus_adapter_registry /tmp/agentharness-manifest.json`
+- Enterprise audit report: `./agentharness audit report examples/agent_bus_adapter_registry`
+- Enterprise audit checklist: `./agentharness audit checklist examples/agent_bus_adapter_registry`
+- Enterprise audit report readback: `./agentharness audit verify-report examples/agent_bus_adapter_registry /tmp/agentharness-audit-report.json`
+
+The file-bus validation source of truth is `.agent_bus/ledger.jsonl`. The committed fixtures under `examples/agent_bus/` mirror that file-bus layout without committing live task state.
+
+Public task CLI commands, daemon scheduling, and realtime chat are deferred until the file protocol is proven.
+
 ## Source Posture
 
 CL4R1T4S and similar corpora are treated as **untrusted external analysis material**.
@@ -152,6 +335,34 @@ docs/
   02-tool-governance-policy.md
   03-agent-safety-eval-suite.md
   04-prompt-policy-compiler.md
+  05-loop-file-bus.md
+  06-runtime-architecture.md
+  07-enterprise-positioning-and-boundary-audit.md
+  08-glossary-and-product-contract.md
+  09-source-backed-integration-strategy.md
+  10-enterprise-audit-report-and-buyer-demo.md
+  11-reproducible-enterprise-demo.md
+  12-buyer-reviewer-decision-guide.md
+  13-external-reviewer-checklist.md
+  14-reviewer-dry-run-and-reproducibility.md
+  15-agentharness-development-loop-operating-model.md
+  16-phase-e-release-readiness-and-packaging-audit.md
+  17-pi-integration-boundary-and-contract.md
+  18-pi-tool-call-mapping-fixture.md
+  19-pi-contract-check-cli.md
+src/
+  agentharness/
+tests/
+  test_agentharness.py
+  test_approval_record.py
+  test_execution_preflight.py
+  test_execution_handoff.py
+  test_adapter_registry.py
+  test_handoff_exporter.py
+  test_handoff_manifest.py
+  test_handoff_manifest_verification.py
+  test_loop_bus.py
+  test_tool_gate.py
 patterns/
   agent_design_patterns.yaml
 policies/
@@ -160,8 +371,18 @@ evals/
   agent_safety_eval_suite.yaml
 schemas/
   agent_policy.schema.yaml
+  loop_task.schema.yaml
+  enterprise_audit_report.schema.yaml
 examples/
   agent_policy.example.yaml
+  agent_bus/
+  agent_bus_tool_gate/
+  agent_bus_approval/
+  agent_bus_preflight/
+  agent_bus_handoff/
+  agent_bus_adapter_registry/
+agentharness
+pyproject.toml
 ```
 
 ## Design Thesis
