@@ -35,6 +35,13 @@ from .pi_evidence_contract_v1 import (
     parse_pi_observation_batch_json_v1,
     rejected_response_v1,
 )
+from .pi_methodology_permit_v1 import (
+    MAX_PERMIT_DOCUMENT_BYTES,
+    MethodologyPermitValidationError,
+    denied_methodology_permit_response_v1,
+    evaluate_methodology_permit_request_v1,
+    parse_methodology_permit_request_json_v1,
+)
 from .pi_tool_call_mapping import build_pi_tool_call_mapping_report
 from .validate import ValidationReport, validate_policy
 from .yamlio import YamlLoadError, load_yaml
@@ -61,7 +68,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="agentharness",
         description="Validate AgentHarness policy assets and run policy smoke evals.",
-        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report, pi contract-check, pi evidence-evaluate-v1",
+        epilog="Commands include: validate, eval, loop check, handoff inspect, handoff export, handoff manifest, handoff verify-manifest, audit checklist, audit report, audit verify-report, pi contract-check, pi evidence-evaluate-v1, pi methodology-permit-v1",
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -199,6 +206,11 @@ def _build_parser() -> argparse.ArgumentParser:
         "bus_root", help="path to registry-backed AgentHarness file-bus directory"
     )
     evidence_evaluate_parser.set_defaults(func=_cmd_pi_evidence_evaluate_v1)
+    methodology_permit_parser = pi_subparsers.add_parser(
+        "methodology-permit-v1",
+        help="evaluate the exact T065 single-use methodology permit request from bounded stdin",
+    )
+    methodology_permit_parser.set_defaults(func=_cmd_pi_methodology_permit_v1)
     return parser
 
 
@@ -378,6 +390,36 @@ def _cmd_pi_evidence_evaluate_v1(args: argparse.Namespace) -> int:
         return 1
     except Exception:
         payload = rejected_response_v1(("evaluation.internal_error",))
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 1
+    print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+    return 0
+
+
+def _cmd_pi_methodology_permit_v1(_args: argparse.Namespace) -> int:
+    stream = getattr(sys.stdin, "buffer", sys.stdin)
+    try:
+        raw = stream.read(MAX_PERMIT_DOCUMENT_BYTES + 1)
+    except (OSError, ValueError):
+        payload = denied_methodology_permit_response_v1("deny.request_invalid")
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 2
+
+    try:
+        request = parse_methodology_permit_request_json_v1(raw)
+    except MethodologyPermitValidationError as exc:
+        payload = denied_methodology_permit_response_v1(exc.code)
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 2
+
+    try:
+        payload = evaluate_methodology_permit_request_v1(request)
+    except (RecursionError, OverflowError):
+        payload = denied_methodology_permit_response_v1("deny.evaluation_depth")
+        print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
+        return 1
+    except Exception:
+        payload = denied_methodology_permit_response_v1("deny.evaluation_internal")
         print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
         return 1
     print(json.dumps(payload, separators=(",", ":"), sort_keys=True))
