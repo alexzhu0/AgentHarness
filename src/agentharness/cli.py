@@ -208,7 +208,10 @@ def _build_parser() -> argparse.ArgumentParser:
     evidence_evaluate_parser.set_defaults(func=_cmd_pi_evidence_evaluate_v1)
     methodology_permit_parser = pi_subparsers.add_parser(
         "methodology-permit-v1",
-        help="evaluate the exact T065 single-use methodology permit request from bounded stdin",
+        help=(
+            "evaluate one finite methodology evidence-decision request "
+            "from bounded stdin"
+        ),
     )
     methodology_permit_parser.set_defaults(func=_cmd_pi_methodology_permit_v1)
     return parser

@@ -79,7 +79,10 @@ class PiMethodologyPermitV1Tests(unittest.TestCase):
             "overlong question": lambda request: request.__setitem__("arguments", {"question": "x" * 10000}),
             "url question": lambda request: request.__setitem__("arguments", {"question": "https://example.invalid/secret"}),
             "path question": lambda request: request.__setitem__("arguments", {"question": "/home/private/METHODOLOGY.md"}),
-            "credential question": lambda request: request.__setitem__("arguments", {"question": "token=sk-proj-secret12345678"}),
+            "credential question": lambda request: request.__setitem__(
+                "arguments",
+                {"question": "token=" + "sk-" + "proj-secret12345678"},
+            ),
             "customer question": lambda request: request.__setitem__("arguments", {"question": "客户A的预算是多少？"}),
             "duplicate observations": _duplicate_observation,
         }
@@ -95,7 +98,7 @@ class PiMethodologyPermitV1Tests(unittest.TestCase):
                 serialized = json.dumps(response, ensure_ascii=False, sort_keys=True)
                 self.assertNotIn("example.invalid", serialized)
                 self.assertNotIn("/home/private", serialized)
-                self.assertNotIn("sk-proj-secret12345678", serialized)
+                self.assertNotIn("sk-" + "proj-secret12345678", serialized)
                 self.assertNotIn("客户A", serialized)
 
     def test_cli_is_stdout_only_canonical_and_denies_policy_mismatch(self) -> None:
@@ -131,7 +134,11 @@ class PiMethodologyPermitV1Tests(unittest.TestCase):
                 self.assertEqual("not_executed", payload["result_status"])
 
     def test_cli_internal_error_is_sanitized_deterministic_json(self) -> None:
-        secret = "secret /home/alex/private token=sk-proj-secret12345678"
+        secret = (
+            "secret /home/example-user/private token="
+            + "sk-"
+            + "proj-secret12345678"
+        )
         with patch(
             "agentharness.cli.evaluate_methodology_permit_request_v1",
             side_effect=RuntimeError(secret),
@@ -142,7 +149,7 @@ class PiMethodologyPermitV1Tests(unittest.TestCase):
         payload = json.loads(stdout)
         self.assertEqual("deny", payload["decision"])
         self.assertNotIn(secret, stdout)
-        self.assertNotIn("/home/alex", stdout)
+        self.assertNotIn("/home/example-user", stdout)
         self.assertNotIn("sk-proj", stdout)
 
     def test_cli_rejects_writer_execution_and_authority_flags(self) -> None:

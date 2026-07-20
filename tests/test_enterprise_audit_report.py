@@ -53,15 +53,15 @@ EXPECTED_EXCLUDED = {
 class EnterpriseAuditReportTests(unittest.TestCase):
     def test_shared_sanitizer_hides_paths_and_preserves_urls(self):
         message = (
-            r"see https://example.com/docs at /home/alex/secret.yaml "
-            r"and C:\\Users\\alex\\secret.yaml and \\\\server\\share\\secret.yaml"
+            r"see https://example.com/docs at /home/example-user/secret.yaml "
+            r"and C:\\Users\\example-user\\secret.yaml and \\\\server\\share\\secret.yaml"
         )
 
         sanitized = sanitize_audit_message(message)
 
         self.assertIn("https://example.com/docs", sanitized)
         self.assertIn("<path>", sanitized)
-        self.assertNotIn("/home/alex", sanitized)
+        self.assertNotIn("/home/example-user", sanitized)
         self.assertNotIn("C:\\Users", sanitized)
         self.assertNotIn("server", sanitized)
         self.assertNotIn("share", sanitized)
@@ -200,7 +200,7 @@ class EnterpriseAuditReportTests(unittest.TestCase):
             ),
             (
                 "raw_host_path_error",
-                lambda value: _mutated(value, lambda item: item["errors"].append("leak /home/alex/secret.yaml")),
+                lambda value: _mutated(value, lambda item: item["errors"].append("leak /home/example-user/secret.yaml")),
             ),
             (
                 "top_level_error_with_ok_true",
@@ -518,10 +518,10 @@ class EnterpriseAuditReportTests(unittest.TestCase):
         self.assertTrue(validate_enterprise_audit_report_payload(payload).ok)
 
         error_report = ValidationReport()
-        error_report.error("probe", "failure /home/alex/secret.yaml")
+        error_report.error("probe", "failure /home/example-user/secret.yaml")
         error_payload = enterprise_audit_error_payload(error_report)
         self.assertTrue(validate_enterprise_audit_report_payload(error_payload).ok)
-        self.assertNotIn("/home/alex/secret.yaml", json.dumps(error_payload))
+        self.assertNotIn("/home/example-user/secret.yaml", json.dumps(error_payload))
 
         direct_payload, direct_report = build_enterprise_audit_report(DIRECT_HANDOFF_BUS_ROOT)
         self.assertIsNone(direct_payload)
@@ -683,12 +683,12 @@ class EnterpriseAuditReportTests(unittest.TestCase):
             ("non_string_warning", lambda value: value.__setitem__("warnings", [123])),
             (
                 "raw_posix_error_path",
-                lambda value: value.__setitem__("errors", ["failure /home/alex/secret.yaml"]),
+                lambda value: value.__setitem__("errors", ["failure /home/example-user/secret.yaml"]),
             ),
             (
                 "raw_windows_warning_path",
                 lambda value: value.__setitem__(
-                    "warnings", [r"warning C:\Users\alex\secret.yaml"]
+                    "warnings", [r"warning C:\Users\example-user\secret.yaml"]
                 ),
             ),
             (
@@ -1125,9 +1125,9 @@ class EnterpriseAuditReportTests(unittest.TestCase):
     def test_error_payload_sanitizes_paths_but_preserves_urls(self):
         report = ValidationReport()
         raw_paths = [
-            "/home/alex/secret.yaml",
+            "/home/example-user/secret.yaml",
             "/tmp/agentharness-secret/report.yaml",
-            r"C:\Users\alex\secret.yaml",
+            r"C:\Users\example-user\secret.yaml",
             "D:/tmp/secret.yaml",
             r"\\server\share\secret.yaml",
         ]
@@ -1156,11 +1156,11 @@ class EnterpriseAuditReportTests(unittest.TestCase):
     def test_unexpected_runtime_error_and_key_error_return_json_without_traceback(self):
         cases = [
             RuntimeError(
-                r"boom /home/alex/secret.yaml C:\Users\alex\secret.yaml "
+                r"boom /home/example-user/secret.yaml C:\Users\example-user\secret.yaml "
                 r"\\server\share\secret.yaml https://example.com/docs"
             ),
             KeyError(r"missing D:/tmp/secret.yaml and /tmp/agentharness-secret/report.yaml"),
-            KeyError(r"missing C:\\Users\\alex\\secret.yaml and \\\\server\\share\\secret.yaml"),
+            KeyError(r"missing C:\\Users\\example-user\\secret.yaml and \\\\server\\share\\secret.yaml"),
         ]
         for exception in cases:
             with self.subTest(exception_type=type(exception).__name__):
@@ -1183,10 +1183,10 @@ class EnterpriseAuditReportTests(unittest.TestCase):
                 self.assertEqual("not_executed", payload["result_status"])
                 self.assertTrue(payload["errors"])
                 self.assertNotIn("Traceback", output)
-                self.assertNotIn("/home/alex/secret.yaml", output)
+                self.assertNotIn("/home/example-user/secret.yaml", output)
                 self.assertNotIn("/tmp/agentharness-secret/report.yaml", output)
-                self.assertNotIn(r"C:\Users\alex\secret.yaml", output)
-                self.assertNotIn(r"C:\\Users\\alex\\secret.yaml", output)
+                self.assertNotIn(r"C:\Users\example-user\secret.yaml", output)
+                self.assertNotIn(r"C:\\Users\\example-user\\secret.yaml", output)
                 self.assertNotIn("C:<path>", output)
                 self.assertNotIn("D:/tmp/secret.yaml", output)
                 self.assertNotIn(r"\\server\share\secret.yaml", output)
@@ -1197,7 +1197,7 @@ class EnterpriseAuditReportTests(unittest.TestCase):
 
     def test_unexpected_key_error_escaped_unc_path_is_fully_sanitized(self):
         def raise_key_error(_bus_root):
-            raise KeyError(r"missing C:\\Users\\alex\\secret.yaml and \\\\server\\share\\secret.yaml")
+            raise KeyError(r"missing C:\\Users\\example-user\\secret.yaml and \\\\server\\share\\secret.yaml")
 
         with mock.patch.object(cli_module, "build_enterprise_audit_report", raise_key_error):
             code, output, stderr = _run_cli(["audit", "report", str(REGISTRY_BUS_ROOT)])
@@ -1211,8 +1211,8 @@ class EnterpriseAuditReportTests(unittest.TestCase):
         self.assertEqual("not_executed", payload["result_status"])
         self.assertTrue(payload["errors"])
         self.assertNotIn("Traceback", output)
-        self.assertNotIn(r"C:\Users\alex\secret.yaml", output)
-        self.assertNotIn(r"C:\\Users\\alex\\secret.yaml", output)
+        self.assertNotIn(r"C:\Users\example-user\secret.yaml", output)
+        self.assertNotIn(r"C:\\Users\\example-user\\secret.yaml", output)
         self.assertNotIn("C:<path>", output)
         self.assertNotIn(r"\\server\share\secret.yaml", output)
         self.assertNotIn(r"\\\\server\\share\\secret.yaml", output)
@@ -1222,7 +1222,7 @@ class EnterpriseAuditReportTests(unittest.TestCase):
 
     def test_unexpected_error_recovery_falls_back_if_error_payload_fails(self):
         def raise_unexpected(_bus_root):
-            raise RuntimeError("boom /home/alex/secret.yaml")
+            raise RuntimeError("boom /home/example-user/secret.yaml")
 
         def raise_payload(_report):
             raise RuntimeError("payload failed /tmp/secret.yaml")

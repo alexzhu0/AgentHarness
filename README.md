@@ -1,8 +1,19 @@
 # AgentHarness
 
-AgentHarness is an agent harness design repository inspired by CL4R1T4S-style system prompt and tool scaffold analysis.
-
 AgentHarness is a pre-execution evidence control-plane for agent actions.
+
+Current prerelease: **v0.2.0-alpha.1**. This GitHub source prerelease does not
+publish a PyPI or npm package.
+
+AgentHarness validates, binds, and exports evidence. Its finite methodology
+pilot emits one exact `permit_once` evidence decision; that value has no
+in-repo execution effect and is not runtime approval. In the accepted
+cross-repository pilot, a trusted, version-pinned, admission-controlled Pi/Win9
+extension separately consumed that evidence for one local read-only action.
+That external runtime behavior is not general runtime authorization. It adds no
+extension sandbox and does not prevent Pi extensions from using their existing
+process or network capabilities. Pi companion code is not included in this
+repository release.
 
 The goal is **not** to copy leaked or reverse-engineered prompts. The goal is to extract reusable engineering patterns and turn them into policy-driven, testable, auditable agent control-plane and runtime-boundary assets.
 
@@ -21,22 +32,22 @@ Tool Router
   ↓
 Approval Gate
   ↓
-Sandboxed Tool Execution
+[external runtime] Tool Execution / Sandbox
   ↓
 Verifier / Eval Hooks
   ↓
 Audited User-facing Response
 ```
 
-AgentHarness treats agent behavior as **policy-as-code**:
+AgentHarness treats pre-execution evidence controls as **policy-as-code**:
 
 ```text
 agent_policy.yaml
   → prompt compiler
-  → runtime policy
-  → tool governance
+  → evidence policy
+  → tool eligibility
   → safety evals
-  → audit logs
+  → audit evidence
 ```
 
 ## Four Core Assets
@@ -182,6 +193,9 @@ T062 runtime-authorization Phase-0 preflight, derivative and still NO-GO:
 
 2026-07-13 documentation/package handoff note:
 [`release/2026.07.13.md`](release/2026.07.13.md)
+
+v0.2.0-alpha.1 GitHub prerelease notes:
+[`release/2026.07.20.md`](release/2026.07.20.md)
 
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 
@@ -350,6 +364,14 @@ docs/
   17-pi-integration-boundary-and-contract.md
   18-pi-tool-call-mapping-fixture.md
   19-pi-contract-check-cli.md
+  20-pi-dual-repo-dry-run-e2e.md
+  21-pi-controlled-read-only-poc.md
+  22-pi-integration-readiness-pause-review.md
+  23-pi-milestone-packaging-audit.md
+  24-pi-observation-evidence-contract-v1.md
+  25-pi-runtime-authorization-readiness-adr.md
+  26-agentharness-pi-shadow-milestone-packaging.md
+  27-pi-runtime-authorization-phase0-preflight.md
 src/
   agentharness/
 tests/

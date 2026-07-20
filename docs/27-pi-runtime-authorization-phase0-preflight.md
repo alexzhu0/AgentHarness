@@ -599,10 +599,15 @@ an independently approved content-addressed patch series with reproducible
 application evidence. Floating branches, ahead/behind counts, local
 availability, and ad-hoc copying from a dirty tree are not baseline pins.
 
-## T063–T072 roadmap
+## Historical T063–T072 roadmap labels
 
 The following records are exact future milestone contracts copied from the
-T062 plan. They do not assert current capability. T063–T068 remain
+T062 plan. These scheduling labels were subsequently superseded and must not
+be used to identify later implemented tasks with reused numbers. In particular,
+the historical T065 below is a deny-only activation-state proposal, not the
+finite methodology evidence pilot included in this release.
+
+These records do not assert current capability. T063–T068 remain
 executor-disconnected and deny-only. T069 is disabled commissioning with no
 permit issuance, no permit consumption, and no execution. T070 is merely the
 first possible separately authorized hermetic qualification milestone; it

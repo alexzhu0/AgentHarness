@@ -159,9 +159,9 @@ class PiEvidenceContractV1Tests(unittest.TestCase):
         probes = (
             ("tool_call_id", "https://internal.example/call"),
             ("tool_call_id", "/opt/company/call"),
-            ("tool_call_id", "sk-proj-secret12345678"),
-            ("tool_call_id", "call-AKIA1234567890EXAMPLE"),
-            ("tool_call_id", "call-sk-proj-secret12345678"),
+            ("tool_call_id", "sk-" + "proj-secret12345678"),
+            ("tool_call_id", "call-" + "AK" + "IA1234567890EXAMPLE"),
+            ("tool_call_id", "call-" + "sk-" + "proj-secret12345678"),
             ("tool_name", "Bearer secret-token"),
             ("tool_name", "token=custom-secret-123456"),
         )

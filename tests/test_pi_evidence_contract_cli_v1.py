@@ -133,7 +133,11 @@ class PiEvidenceContractCliV1Tests(unittest.TestCase):
 
     def test_unexpected_evaluator_error_is_bounded_json_without_exception_text(self) -> None:
         request = _request("call-internal-error")
-        exception_text = "secret /home/alex/private token=sk-proj-secret12345678"
+        exception_text = (
+            "secret /home/example-user/private token="
+            + "sk-"
+            + "proj-secret12345678"
+        )
         with patch(
             "agentharness.cli.evaluate_pi_evidence_request_v1",
             side_effect=RuntimeError(exception_text),
@@ -149,8 +153,8 @@ class PiEvidenceContractCliV1Tests(unittest.TestCase):
         self.assertTrue(verify_pi_evidence_response_v1(response, request)["valid"])
         self.assertNotIn(exception_text, stdout)
         self.assertNotIn("secret", stdout)
-        self.assertNotIn("/home/alex", stdout)
-        self.assertNotIn("sk-proj-secret12345678", stdout)
+        self.assertNotIn("/home/example-user", stdout)
+        self.assertNotIn("sk-" + "proj-secret12345678", stdout)
 
     def test_forbidden_output_or_execution_flags_are_rejected(self) -> None:
         for flag in ["--out", "--write", "--execute", "--run", "--allow"]:

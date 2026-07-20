@@ -75,6 +75,18 @@ T056-T060 的当前里程碑入口如下：
   它是 T060 的派生规划，结论仍为 NO-GO、NOT IMPLEMENTED。
 - 2026-07-13 release note 见
   [`release/2026.07.13.md`](../release/2026.07.13.md)。
+- v0.2.0-alpha.1 GitHub prerelease 见
+  [`release/2026.07.20.md`](../release/2026.07.20.md)。该版本发布
+  AgentHarness evidence/control-plane 源码，不包含 Pi companion，也不发布
+  PyPI 或 npm package。
+
+有限 methodology permit pilot 在 AgentHarness 侧只生成一个精确绑定的
+`permit_once` evidence decision；它在本仓库中不执行读取，也不是 runtime
+approval。已验收的跨仓库 pilot 由 trusted、version-pinned、
+admission-controlled Pi/Win9 TCB 另外绑定 registration/session 并消费该证据，
+完成一次固定本地只读动作。Pi companion 不在本次发布中；该 pilot 不是通用
+runtime authorization，不提供 extension sandbox，也不阻止 Pi extension 已有的
+process/network 能力。
 
 AgentHarness 只提供 pre-execution evidence。Pi 或其他 external runtime
 拥有 authorization。`allow_candidate` 永不构成许可；当前 bridge 只会

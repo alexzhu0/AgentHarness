@@ -1,9 +1,10 @@
-"""Deterministic single-use methodology permit decision contract.
+"""Deterministic single-use methodology evidence-decision contract.
 
 This module evaluates one pre-execution Pi request.  It never invokes Pi,
 reads the pinned Pi artifact, or executes a tool.  A ``permit_once`` response
-is only a current-call-bound authorization artifact for the explicitly scoped
-T065 pilot; Pi independently validates and consumes it.
+is a finite current-call-bound evidence artifact, not runtime authority.  The
+external Pi runtime independently owns authorization, validation, and any
+consumption of that evidence.
 """
 
 from __future__ import annotations
@@ -71,7 +72,7 @@ class MethodologyPermitValidationError(ValueError):
 def build_methodology_permit_request_v1(
     observation_batch: Mapping[str, Any], arguments: Mapping[str, Any]
 ) -> dict[str, Any]:
-    """Build the exact T065 request envelope without executing anything."""
+    """Build the exact finite-pilot request envelope without execution."""
 
     request = {
         "version": PERMIT_VERSION,
@@ -115,7 +116,7 @@ def parse_methodology_permit_request_json_v1(raw: str | bytes) -> Mapping[str, A
 
 
 def evaluate_methodology_permit_request_v1(request: Any) -> dict[str, Any]:
-    """Return a deterministic ``permit_once`` or ``deny`` response."""
+    """Return deterministic ``permit_once`` evidence or a denial."""
 
     code, call_binding = _decision_code_and_binding(request)
     decision = "permit_once" if code == "permit.exact_methodology_lookup" else "deny"
