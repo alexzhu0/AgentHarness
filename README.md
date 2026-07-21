@@ -191,6 +191,9 @@ T061 no-commit milestone packaging handoff:
 T062 runtime-authorization Phase-0 preflight, derivative and still NO-GO:
 [`docs/27`](docs/27-pi-runtime-authorization-phase0-preflight.md)
 
+Release and milestone history, including record types and truthful GitHub tag
+mapping: [`release/README.md`](release/README.md)
+
 2026-07-13 documentation/package handoff note:
 [`release/2026.07.13.md`](release/2026.07.13.md)
 
