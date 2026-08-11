@@ -156,13 +156,48 @@ Pi contract-check CLI doc for static fixture validation only, not live Pi integr
 
 Pi dual-repo dry-run E2E doc for opt-in local wiring only, not runtime allow: [`docs/20-pi-dual-repo-dry-run-e2e.md`](docs/20-pi-dual-repo-dry-run-e2e.md)
 
-Pi controlled read-only PoC doc for test-only exact fake read allow/block branching, not production runtime allow: [`docs/21-pi-controlled-read-only-poc.md`](docs/21-pi-controlled-read-only-poc.md)
+Historical T040 controlled fake-read PoC evidence records one positive fake
+read execution. Accepted T056 evidence-integrity review supersedes that behavior
+with a block-only baseline: all tested cases block and fake-tool execution stays
+at zero:
+[`docs/21`](docs/21-pi-controlled-read-only-poc.md)
 
 Pi integration readiness pause review, not real execution approval:
-[`docs/22-pi-integration-readiness-pause-review.md`](docs/22-pi-integration-readiness-pause-review.md)
+[`docs/22`](docs/22-pi-integration-readiness-pause-review.md)
 
 Pi milestone packaging audit, not a commit or release:
-[`docs/23-pi-milestone-packaging-audit.md`](docs/23-pi-milestone-packaging-audit.md)
+[`docs/23`](docs/23-pi-milestone-packaging-audit.md)
+
+Pi observation/evidence contract v1, evidence-only and not runtime allow:
+[`docs/24`](docs/24-pi-observation-evidence-contract-v1.md)
+
+Pi runtime-authorization readiness ADR, currently NO-GO and NOT IMPLEMENTED:
+[`docs/25`](docs/25-pi-runtime-authorization-readiness-adr.md)
+
+Historical T061 no-commit milestone packaging handoff:
+[`docs/26`](docs/26-agentharness-pi-shadow-milestone-packaging.md)
+
+T062 runtime-authorization Phase-0 preflight, derivative and still NO-GO:
+[`docs/27`](docs/27-pi-runtime-authorization-phase0-preflight.md)
+
+Pi V4 trusted-publication continuity record, deployment-integrity planning only
+and not runtime authorization:
+[`docs/28`](docs/28-pi-v4-publication-continuity.md)
+
+Current AgentHarness-only local maintenance closure:
+[`docs/29`](docs/29-agentharness-maintenance-closure.md)
+
+Latest local release record, dated 2026-08-11:
+[`release/2026.08.11.md`](release/2026.08.11.md)
+
+Historical 2026-07-13 documentation/package handoff note:
+[`release/2026.07.13.md`](release/2026.07.13.md)
+
+Complete local release-record index, newest first:
+[`release/README.md`](release/README.md)
+
+Repository maintenance and verification rules:
+[`AGENTS.md`](AGENTS.md)
 
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 
@@ -331,8 +366,13 @@ docs/
   17-pi-integration-boundary-and-contract.md
   18-pi-tool-call-mapping-fixture.md
   19-pi-contract-check-cli.md
+  20-29 Pi boundary, evidence, ADR, handoff, and maintenance records
+release/
+  README.md
+  YYYY.MM.DD.md
 src/
   agentharness/
+    pi_evidence_contract_v1.py
 tests/
   test_agentharness.py
   test_approval_record.py
@@ -343,6 +383,9 @@ tests/
   test_handoff_manifest.py
   test_handoff_manifest_verification.py
   test_loop_bus.py
+  test_pi_evidence_contract_cli_v1.py
+  test_pi_evidence_contract_v1.py
+  test_pi_tool_call_mapping.py
   test_tool_gate.py
 patterns/
   agent_design_patterns.yaml
@@ -363,6 +406,7 @@ examples/
   agent_bus_handoff/
   agent_bus_adapter_registry/
 agentharness
+AGENTS.md
 pyproject.toml
 ```
 

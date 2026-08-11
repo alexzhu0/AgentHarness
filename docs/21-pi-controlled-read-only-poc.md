@@ -4,13 +4,21 @@ Last checked date: 2026-07-07
 
 AgentHarness is a pre-execution evidence control-plane for agent actions.
 
-## Scope
+> **Supersession/current-baseline note (2026-07-12):** T040 remains
+> historical six-test PoC evidence, including one positive fake read execution.
+> T058 supersedes any implication that this historical allow branch is current:
+> Pi production live mode sends current `beforeToolCall` data through
+> `evidence-evaluate-v1`, and every valid outcome, including synthetic correlated
+> `allow_candidate`, remains block-only with `result_status: not_executed`.
+> AgentHarness executes no tool; Pi owns runtime enforcement.
+
+## Historical T040 scope
 
 This document records the T040 controlled read-only allow/block proof of concept
 between Pi and AgentHarness. It is a test-only seam demonstration:
 
 - Pi calls local AgentHarness `pi contract-check` evidence.
-- Pi may allow exactly one hermetic fake read-only test tool.
+- Pi could allow exactly one hermetic fake read-only test tool.
 - Every other observed case blocks before fake tool execution.
 - AgentHarness evidence remains `result_status: not_executed`.
 
@@ -39,9 +47,9 @@ npm --workspace @earendil-works/pi-coding-agent test -- \
 The Pi test derives AgentHarness paths from `AGENTHARNESS_REPO`; no local
 checkout path is hardcoded in Pi source.
 
-## Exact allow conditions
+## Historical T040 allow conditions
 
-The fake read-only tool may execute only when all checks pass:
+The fake read-only tool could execute only when all checks passed:
 
 1. AgentHarness CLI exits `0`.
 2. AgentHarness report JSON is valid.
@@ -70,7 +78,8 @@ Observed locally on 2026-07-07:
 
 ## Boundary reminder
 
-T040 proves only that a narrow allow/block branch can be represented in tests.
-It does not make AgentHarness a production permission system, does not
-authorize real Pi tool execution, and does not create a generic
-`allow_candidate` to runtime allow mapping.
+T040 proves only that a narrow allow/block branch was represented in tests. T058
+explicitly supersedes any allow-path implication: production live mode blocks
+every valid evidence outcome before execution. T040 does not make AgentHarness a
+production permission system, authorize real Pi tool execution, or create a
+generic `allow_candidate` to runtime allow mapping.
