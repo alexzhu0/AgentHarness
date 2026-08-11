@@ -30,7 +30,9 @@ _UNC_PATH_PATTERN = re.compile(
     r"\\\\[^\\/\s:'\"{}()[\],]+(?:\\[^\\/\s:'\"{}()[\],]+)+"
 )
 _WINDOWS_DRIVE_PATH_PATTERN = re.compile(r"\b[A-Za-z]:[\\/]+[^\s:'\"{}()[\],]*")
-_POSIX_PATH_PATTERN = re.compile(r"(?<![:/])/(?:[^\s:'\"{}()[\],]+/)*[^\s:'\"{}()[\],]*")
+_POSIX_PATH_PATTERN = re.compile(
+    r"(?<![A-Za-z0-9._/-])/(?:[^\s:'\"{}()[\],]+/)*[^\s:'\"{}()[\],]*"
+)
 
 
 def sanitize_audit_message(message: Any) -> str:

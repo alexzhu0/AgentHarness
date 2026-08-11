@@ -1,0 +1,23 @@
+{
+  "canonicalization_id": "AH-ARGS-C14N-1",
+  "result_status": "not_executed",
+  "accepted": [
+    {"name": "sorted_keys", "arguments": {"b": 2, "a": 1}, "canonical": "{\"a\":1,\"b\":2}", "digest": "sha256:43258cff783fe7036d8a43033f830adfc60ec037382473548ac742b888292777", "result_status": "not_executed"},
+    {"name": "unicode_escape", "arguments": {"text": "é"}, "canonical": "{\"text\":\"\\u00e9\"}", "digest": "sha256:d804508ba860f371e3f4ad571e0b760745ca1347987ba8ad41cb3eef8b4c284f", "result_status": "not_executed"},
+    {"name": "surrogate_pair_escape", "arguments": {"emoji": "😀"}, "canonical": "{\"emoji\":\"\\ud83d\\ude00\"}", "digest": "sha256:95214adac04561738c96eceaf332900a133fcbe1e1031a552a41b91e83d6092e", "result_status": "not_executed"},
+    {"name": "unicode_code_point_key_order", "arguments": {"😀": 1, "דּ": 2}, "canonical": "{\"\\ufb33\":2,\"\\ud83d\\ude00\":1}", "digest": "sha256:7c34581e76e85243e29f37006bddb467fe452ea83f55838d0f1b1484824fa822", "result_status": "not_executed"},
+    {"name": "nested_values", "arguments": {"z": {"b": null, "a": true}, "a": "x"}, "canonical": "{\"a\":\"x\",\"z\":{\"a\":true,\"b\":null}}", "digest": "sha256:81dd43beb42cf2d0f253a2b550134a2296a1c757d00ffe0881ebdc4ab8eb9e2c", "result_status": "not_executed"},
+    {"name": "arrays", "arguments": {"items": [3, {"b": 2, "a": 1}, false, null]}, "canonical": "{\"items\":[3,{\"a\":1,\"b\":2},false,null]}", "digest": "sha256:3b10a227f9b92b8bd436aafe636d6eb42b63aa1ccd0dc619d31ae25d6e8d013c", "result_status": "not_executed"},
+    {"name": "safe_integer_bounds", "arguments": {"max": 9007199254740991, "min": -9007199254740991, "zero": 0}, "canonical": "{\"max\":9007199254740991,\"min\":-9007199254740991,\"zero\":0}", "digest": "sha256:b7b2401ddca2165824e98c61890c0aaec470258d3119dd265d02be9438bf47e6", "result_status": "not_executed"},
+    {"name": "binary64_rendering", "arguments": {"decimal": 1.5, "small": 1e-7, "threshold": 0.000001}, "canonical": "{\"decimal\":1.5,\"small\":1e-7,\"threshold\":0.000001}", "digest": "sha256:060bafcba657fc0c70affee3060c0fef278bddb493b51b988b1eaee4bb9ed0aa", "result_status": "not_executed"},
+    {"name": "positive_zero", "arguments": {"n": 0}, "canonical": "{\"n\":0}", "digest": "sha256:f3013f933b9fb80ab6d995e7ad9da36f683837ba1d81e950c943d40111eac2f0", "result_status": "not_executed"}
+  ],
+  "rejected": [
+    {"name": "root_array", "json_source": "[]", "error_code": "arguments.root_not_object", "result_status": "not_executed"},
+    {"name": "negative_zero", "json_source": "{\"n\":-0.0}", "error_code": "arguments.negative_zero", "result_status": "not_executed"},
+    {"name": "unsafe_integer", "json_source": "{\"n\":9007199254740992}", "error_code": "arguments.unsafe_integer", "result_status": "not_executed"},
+    {"name": "non_finite", "language_value": "positive_infinity", "error_code": "arguments.non_finite_number", "result_status": "not_executed"},
+    {"name": "invalid_unicode_scalar", "language_value": "lone_high_surrogate", "error_code": "arguments.invalid_unicode_scalar", "result_status": "not_executed"},
+    {"name": "unsupported_type", "language_value": "undefined", "error_code": "arguments.unsupported_type", "result_status": "not_executed"}
+  ]
+}

@@ -261,6 +261,116 @@ class PiToolCallMappingTests(unittest.TestCase):
             report["errors"],
         )
 
+    def test_invalid_arguments_digest_shapes_fail_closed(self) -> None:
+        invalid_digests = {
+            "short": "sha256:" + "a" * 63,
+            "long": "sha256:" + "a" * 65,
+            "uppercase_hex": "sha256:" + "A" * 64,
+            "missing_sha256_prefix": "a" * 64,
+            "leading_whitespace": " sha256:" + "a" * 64,
+            "trailing_whitespace": "sha256:" + "a" * 64 + " ",
+            "non_string": 123,
+            "null": None,
+        }
+        for name, invalid_digest in invalid_digests.items():
+            with self.subTest(name=name), _temporary_payloads() as paths:
+                observations = _load_json(paths["observations"])
+                observations["observations"][0]["arguments_digest"] = invalid_digest
+                _write_json(paths["observations"], observations)
+
+                report = build_pi_tool_call_mapping_report(
+                    paths["observations"],
+                    paths["expectations"],
+                    REGISTRY_BUS_ROOT,
+                )
+
+                self.assertFalse(report["ok"])
+                first = _decision_by_id(report, "pi-obs-001-read-workspace")
+                self.assertEqual("error", first["decision"])
+                self.assertNotEqual("allow_candidate", first["decision"])
+                self.assertEqual(NOT_EXECUTED, report["result_status"])
+                self.assertEqual(NOT_EXECUTED, first["result_status"])
+                self.assertEqual([], _bad_result_status_paths(report))
+                self.assertTrue(
+                    any("arguments_digest" in error for error in first["errors"]),
+                    first["errors"],
+                )
+
+    def test_invalid_order_index_values_fail_closed(self) -> None:
+        invalid_values = {
+            "boolean": False,
+            "wrong_position": 1,
+        }
+        for name, invalid_value in invalid_values.items():
+            with self.subTest(name=name), _temporary_payloads() as paths:
+                observations = _load_json(paths["observations"])
+                observations["observations"][0]["order_index"] = invalid_value
+                _write_json(paths["observations"], observations)
+
+                report = build_pi_tool_call_mapping_report(
+                    paths["observations"],
+                    paths["expectations"],
+                    REGISTRY_BUS_ROOT,
+                )
+
+                self.assertFalse(report["ok"])
+                first = _decision_by_id(report, "pi-obs-001-read-workspace")
+                self.assertEqual("error", first["decision"])
+                self.assertNotEqual("allow_candidate", first["decision"])
+                self.assertTrue(
+                    any("order_index" in error for error in first["errors"]),
+                    first["errors"],
+                )
+                self.assertEqual([], _bad_result_status_paths(report))
+
+    def test_duplicate_json_keys_fail_closed(self) -> None:
+        with _temporary_payloads() as paths:
+            observations = _load_json(paths["observations"])
+            raw = _canonical_json(observations)
+            unique_kind = '"kind":"pi_tool_call_observation_batch"'
+            duplicate_kind = unique_kind + "," + unique_kind
+            self.assertIn(unique_kind, raw)
+            paths["observations"].write_text(
+                raw.replace(unique_kind, duplicate_kind, 1),
+                encoding="utf-8",
+            )
+
+            report = build_pi_tool_call_mapping_report(
+                paths["observations"],
+                paths["expectations"],
+                REGISTRY_BUS_ROOT,
+            )
+
+        self.assertFalse(report["ok"])
+        self.assertEqual([], report["decisions"])
+        self.assertTrue(
+            any(
+                "duplicate JSON object key" in error
+                for check in report["checks"]
+                for error in check["errors"]
+            ),
+            report["checks"],
+        )
+        self.assertEqual([], _bad_result_status_paths(report))
+
+    def test_valid_lowercase_sha256_shape_preserves_static_fixture_decision(self) -> None:
+        with _temporary_payloads() as paths:
+            observations = _load_json(paths["observations"])
+            observations["observations"][0]["arguments_digest"] = "sha256:" + "a" * 64
+            _write_json(paths["observations"], observations)
+
+            report = build_pi_tool_call_mapping_report(
+                paths["observations"],
+                paths["expectations"],
+                REGISTRY_BUS_ROOT,
+            )
+
+        self.assertTrue(report["ok"], report["errors"])
+        first = _decision_by_id(report, "pi-obs-001-read-workspace")
+        self.assertEqual("allow_candidate", first["decision"])
+        self.assertEqual(NOT_EXECUTED, report["result_status"])
+        self.assertEqual([], _bad_result_status_paths(report))
+
     def test_input_path_like_values_are_sanitized_from_report_payload(self) -> None:
         with _temporary_payloads() as paths:
             observations = _load_json(paths["observations"])

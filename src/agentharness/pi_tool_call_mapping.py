@@ -6,7 +6,12 @@ import json
 from pathlib import Path
 from typing import Any, Mapping
 
-from .audit_contract import NOT_EXECUTED, VERSION, sanitize_audit_message
+from .audit_contract import (
+    NOT_EXECUTED,
+    SHA256_DIGEST_PATTERN,
+    VERSION,
+    sanitize_audit_message,
+)
 from .handoff_exporter import build_handoff_export_package
 from .handoff_manifest import build_handoff_export_manifest
 
@@ -16,6 +21,10 @@ REPORT_SOURCE = "build_pi_tool_call_mapping_report"
 OBSERVATION_KIND = "pi_tool_call_observation_batch"
 EXPECTATION_KIND = "agentharness_pi_mapping_expectations"
 DECISION_VOCABULARY = ("allow_candidate", "block", "unsupported", "error")
+
+
+class _DuplicateJsonKeyError(ValueError):
+    """Raised when JSON input contains an ambiguous duplicate object key."""
 
 
 def build_pi_tool_call_mapping_report(
@@ -215,7 +224,16 @@ def _decision_report(
         expectation.get("observation_id") if isinstance(expectation, Mapping) else None
     )
 
-    decision, reason, binding, decision_errors = _derive_decision(observation, evidence)
+    order_index = observation.get("order_index")
+    if type(order_index) is not int or order_index != index:
+        decision = "error"
+        reason = "malformed observation has invalid order_index"
+        binding = None
+        decision_errors = [
+            f"observation.order_index: must be integer {index} for this position"
+        ]
+    else:
+        decision, reason, binding, decision_errors = _derive_decision(observation, evidence)
     if expected_decision != decision:
         report_errors.append(
             f"decisions[{index}].decision: expected {expected_decision!r}, got {decision!r}"
@@ -259,6 +277,17 @@ def _derive_decision(
             f"malformed observation missing required field(s): {', '.join(missing)}",
             None,
             [f"observation: malformed missing {', '.join(missing)}"],
+        )
+
+    arguments_digest = observation.get("arguments_digest")
+    if not isinstance(arguments_digest, str) or not SHA256_DIGEST_PATTERN.fullmatch(
+        arguments_digest
+    ):
+        return (
+            "error",
+            "malformed observation has invalid arguments_digest",
+            None,
+            ["observation.arguments_digest: must match sha256:<64 lowercase hex characters>"],
         )
 
     tool_name = _string_value(observation.get("tool_name"))
@@ -326,7 +355,7 @@ def _missing_observation_fields(observation: Mapping[str, Any]) -> list[str]:
     for field_name in required_strings:
         if not _string_value(observation.get(field_name)):
             missing.append(field_name)
-    if not isinstance(observation.get("order_index"), int):
+    if type(observation.get("order_index")) is not int:
         missing.append("order_index")
     return missing
 
@@ -350,7 +379,16 @@ def _load_json_mapping(
         _add_check(checks, f"load_{label}", False, f"{label}: could not read JSON")
         return None
     try:
-        value = json.loads(raw)
+        value = json.loads(raw, object_pairs_hook=_unique_json_object)
+    except _DuplicateJsonKeyError:
+        _add_check(
+            checks,
+            f"load_{label}",
+            False,
+            f"{label}: duplicate JSON object key is not allowed",
+            [f"{label}: duplicate JSON object key is not allowed"],
+        )
+        return None
     except json.JSONDecodeError as exc:
         _add_check(
             checks,
@@ -469,8 +507,16 @@ def _check_order(
 ) -> None:
     observation_ids = [item.get("observation_id") for item in observations]
     expectation_ids = [item.get("observation_id") for item in expectations]
-    order_ok = observation_ids == expectation_ids
-    check_errors = [] if order_ok else ["order: observation IDs must match expectation IDs"]
+    check_errors: list[str] = []
+    if observation_ids != expectation_ids:
+        check_errors.append("order: observation IDs must match expectation IDs")
+    for index, observation in enumerate(observations):
+        order_index = observation.get("order_index")
+        if type(order_index) is not int or order_index != index:
+            check_errors.append(
+                f"observations[{index}].order_index: must be integer {index}"
+            )
+    order_ok = not check_errors
     errors.extend(check_errors)
     _add_check(
         checks,
@@ -479,6 +525,15 @@ def _check_order(
         "observation and expectation order matches",
         check_errors,
     )
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    value: dict[str, Any] = {}
+    for key, item in pairs:
+        if key in value:
+            raise _DuplicateJsonKeyError
+        value[key] = item
+    return value
 
 
 def _request_semantic_errors(

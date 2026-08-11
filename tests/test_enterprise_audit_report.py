@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 import agentharness.cli as cli_module
-from agentharness.audit_contract import sanitize_audit_message
+from agentharness.audit_contract import contains_raw_audit_path, sanitize_audit_message
 import agentharness.enterprise_audit_checklist as checklist_module
 from agentharness.enterprise_audit_checklist import (
     build_enterprise_audit_checklist,
@@ -66,6 +66,31 @@ class EnterpriseAuditReportTests(unittest.TestCase):
         self.assertNotIn("server", sanitized)
         self.assertNotIn("share", sanitized)
         self.assertNotIn("secret.yaml", sanitized)
+
+    def test_shared_sanitizer_hides_labeled_absolute_paths(self):
+        for message in (
+            "path:/home/alex/private",
+            "root:/tmp/private",
+            "file:/var/lib/private",
+        ):
+            with self.subTest(message=message):
+                self.assertEqual(
+                    message.split(":", 1)[0] + ":<path>",
+                    sanitize_audit_message(message),
+                )
+
+    def test_raw_path_validator_rejects_labeled_absolute_paths_only(self):
+        for message in (
+            "path:/home/alex/private",
+            "root:/tmp/private",
+            "file:/var/lib/private",
+        ):
+            with self.subTest(message=message):
+                self.assertTrue(contains_raw_audit_path(message))
+
+        self.assertFalse(contains_raw_audit_path("path:examples/agent_bus"))
+        self.assertFalse(contains_raw_audit_path("examples/agent_bus"))
+        self.assertFalse(contains_raw_audit_path("https://example.com/private"))
 
     def test_checklist_does_not_import_report_private_sanitizer(self):
         source = (ROOT / "src" / "agentharness" / "enterprise_audit_checklist.py").read_text(
