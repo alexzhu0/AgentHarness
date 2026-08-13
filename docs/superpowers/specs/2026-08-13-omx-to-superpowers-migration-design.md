@@ -27,8 +27,7 @@ version, or release status.
   Windows `codex plugin list` currently report
   `superpowers@openai-curated` as not installed.
 - WSL Claude reports `superpowers@claude-plugins-official` installed and
-  enabled. Windows Claude requires an installation-state check before any
-  mutation.
+  enabled. Windows Claude reports that no plugins are installed.
 
 ## Chosen approach
 
