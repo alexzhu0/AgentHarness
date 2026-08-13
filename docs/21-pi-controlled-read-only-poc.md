@@ -38,8 +38,9 @@ PI_AGENTHARNESS_READ_ONLY_POC=1
 The full local E2E command from the Pi repo root is:
 
 ```bash
+: "${AGENTHARNESS_REPO:?set it to the local AgentHarness checkout}"
 PI_AGENTHARNESS_E2E=1 \
-AGENTHARNESS_REPO=/home/alex/DTAlex/learningGitHub/AgentHarness \
+AGENTHARNESS_REPO="$AGENTHARNESS_REPO" \
 npm --workspace @earendil-works/pi-coding-agent test -- \
   test/agentharness-read-only-poc-e2e.test.ts
 ```

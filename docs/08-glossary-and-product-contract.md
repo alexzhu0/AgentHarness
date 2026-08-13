@@ -54,6 +54,12 @@ AgentHarness must not execute tools, call adapters, mutate task lifecycle throug
 
 All current handoff/export/manifest/verification/audit/readback outputs remain `result_status: not_executed`.
 
+The finite methodology pilot uses `permit_once` as an evidence-decision label.
+Despite that label, AgentHarness does not read the pinned artifact, execute a
+tool, or grant runtime authority. The response retains
+`result_status: not_executed`; an external runtime independently owns any
+authorization and consumption decision.
+
 Adapter references are versioned evidence bindings, not live runtime discovery.
 
 Downstream runtimes/governance/auth systems are external consumers.

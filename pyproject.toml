@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agentharness"
-version = "0.1.0"
-description = "Policy-as-code assets and smoke checks for agent runtime governance."
+version = "0.2.0a1"
+description = "Pre-execution evidence controls and verification assets for agent actions."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [

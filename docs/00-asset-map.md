@@ -73,16 +73,34 @@ T056-T060 的当前里程碑入口如下：
 - T062 Phase-0 preflight 见
   [`docs/27`](./27-pi-runtime-authorization-phase0-preflight.md)；
   它是 T060 的派生规划，结论仍为 NO-GO、NOT IMPLEMENTED。
+- release 与 milestone 历史索引见
+  [`release/README.md`](../release/README.md)；该索引区分证据日期、历史记录与
+  正式 GitHub prerelease，避免把计划日期误写为发布日期。
 - 2026-07-13 release note 见
   [`release/2026.07.13.md`](../release/2026.07.13.md)。
+- v0.2.0-alpha.1 GitHub prerelease 见
+  [`release/2026.07.20.md`](../release/2026.07.20.md)。该版本发布
+  AgentHarness evidence/control-plane 源码，不包含 Pi companion，也不发布
+  PyPI 或 npm package。
 - 2026-08-11 AgentHarness-only 本地收尾记录见
   [`docs/29`](./29-agentharness-maintenance-closure.md)，对应 release note
   见 [`release/2026.08.11.md`](../release/2026.08.11.md)。它只关闭本仓库
   的脏变更和维护证据，不修改 Pi，也不授权 runtime execution。
 
-AgentHarness 只提供 pre-execution evidence。Pi 或其他 external runtime
-拥有 authorization。`allow_candidate` 永不构成许可；当前 bridge 只会
-block，所有结果为 `not_executed`，没有真实执行。
+有限 methodology permit pilot 在 AgentHarness 侧只生成一个精确绑定的
+`permit_once` evidence decision；它在本仓库中不执行读取，也不是 runtime
+approval。已验收的跨仓库 pilot 由 trusted、version-pinned、
+admission-controlled Pi/Win9 TCB 另外绑定 registration/session 并消费该证据，
+完成一次固定本地只读动作。Pi companion 不在本次发布中；该 pilot 不是通用
+runtime authorization，不提供 extension sandbox，也不阻止 Pi extension 已有的
+process/network 能力。
+
+AgentHarness 只提供 pre-execution evidence。T058/T059 live-shadow bridge
+始终是 block-only，执行计数为零，所有结果为 `not_executed`。后续有限
+methodology permit pilot 是 Pi 侧 external TCB 中单独约束的一次固定只读动作；
+它不改变 AgentHarness evidence-only 边界，也不是通用 runtime authorization。
+Pi 或其他 external runtime 仍拥有 authorization，`allow_candidate` 永不构成通用
+执行许可。
 
 当前 file-bus MVP 入口：
 

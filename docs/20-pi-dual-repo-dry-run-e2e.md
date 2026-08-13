@@ -45,8 +45,9 @@ comes from the reviewer-provided environment.
 From the Pi repo root:
 
 ```bash
+: "${AGENTHARNESS_REPO:?set it to the local AgentHarness checkout}"
 PI_AGENTHARNESS_E2E=1 \
-AGENTHARNESS_REPO=/home/alex/DTAlex/learningGitHub/AgentHarness \
+AGENTHARNESS_REPO="$AGENTHARNESS_REPO" \
 npm --workspace @earendil-works/pi-coding-agent test -- test/agentharness-dry-run-e2e.test.ts
 ```
 

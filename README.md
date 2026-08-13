@@ -1,8 +1,19 @@
 # AgentHarness
 
-AgentHarness is an agent harness design repository inspired by CL4R1T4S-style system prompt and tool scaffold analysis.
-
 AgentHarness is a pre-execution evidence control-plane for agent actions.
+
+Current prerelease: **v0.2.0-alpha.1**. This GitHub source prerelease does not
+publish a PyPI or npm package.
+
+AgentHarness validates, binds, and exports evidence. Its finite methodology
+pilot emits one exact `permit_once` evidence decision; that value has no
+in-repo execution effect and is not runtime approval. In the accepted
+cross-repository pilot, a trusted, version-pinned, admission-controlled Pi/Win9
+extension separately consumed that evidence for one local read-only action.
+That external runtime behavior is not general runtime authorization. It adds no
+extension sandbox and does not prevent Pi extensions from using their existing
+process or network capabilities. Pi companion code is not included in this
+repository release.
 
 The goal is **not** to copy leaked or reverse-engineered prompts. The goal is to extract reusable engineering patterns and turn them into policy-driven, testable, auditable agent control-plane and runtime-boundary assets.
 
@@ -21,22 +32,22 @@ Tool Router
   ↓
 Approval Gate
   ↓
-Sandboxed Tool Execution
+[external runtime] Tool Execution / Sandbox
   ↓
 Verifier / Eval Hooks
   ↓
 Audited User-facing Response
 ```
 
-AgentHarness treats agent behavior as **policy-as-code**:
+AgentHarness treats pre-execution evidence controls as **policy-as-code**:
 
 ```text
 agent_policy.yaml
   → prompt compiler
-  → runtime policy
-  → tool governance
+  → evidence policy
+  → tool eligibility
   → safety evals
-  → audit logs
+  → audit evidence
 ```
 
 ## Four Core Assets
@@ -180,6 +191,9 @@ Historical T061 no-commit milestone packaging handoff:
 T062 runtime-authorization Phase-0 preflight, derivative and still NO-GO:
 [`docs/27`](docs/27-pi-runtime-authorization-phase0-preflight.md)
 
+Official `v0.2.0-alpha.1` GitHub source prerelease notes:
+[`release/2026.07.20.md`](release/2026.07.20.md)
+
 Pi V4 trusted-publication continuity record, deployment-integrity planning only
 and not runtime authorization:
 [`docs/28`](docs/28-pi-v4-publication-continuity.md)
@@ -237,6 +251,8 @@ AgentHarness includes a small local CLI for keeping the YAML assets honest:
 ./agentharness audit report examples/agent_bus_adapter_registry > /tmp/agentharness-audit-report.json
 ./agentharness audit verify-report examples/agent_bus_adapter_registry /tmp/agentharness-audit-report.json
 ./agentharness pi contract-check examples/pi_tool_call_mapping/pi_tool_call_observations.json examples/pi_tool_call_mapping/expected_mapping.json examples/agent_bus_adapter_registry
+./agentharness pi evidence-evaluate-v1 examples/agent_bus_adapter_registry < request.json
+./agentharness pi methodology-permit-v1 < request.json
 ```
 
 The eval command is a mock policy smoke runner. It does not execute a model; it checks whether the current policy contains enforceable controls for the first prompt-injection, prompt-disclosure and secret-handling safety cases.
@@ -288,6 +304,16 @@ over observation and expectation fixtures plus the registry-backed bus. It
 emits `pi_tool_call_mapping_validation_report` JSON to stdout only, returns 0
 only when `ok:true`, and keeps `allow_candidate` as candidate evidence rather
 than runtime allow or safe-to-execute approval.
+
+The pi evidence-evaluate-v1 command reads one bounded observation request from
+stdin, binds it to one captured AgentHarness evidence snapshot, and emits one
+deterministic JSON response. It never executes the observed tool and preserves
+`result_status: not_executed`.
+
+The pi methodology-permit-v1 command evaluates the exact finite methodology
+pilot request from bounded stdin. A matching request emits `permit_once` as
+evidence for external runtime verification; it does not read the pinned
+artifact, consume the permit, or execute a tool in this repository.
 
 ## File-Bus Loop MVP
 
@@ -379,6 +405,7 @@ release/
 src/
   agentharness/
     pi_evidence_contract_v1.py
+    pi_methodology_permit_v1.py
 tests/
   test_agentharness.py
   test_approval_record.py
@@ -391,6 +418,7 @@ tests/
   test_loop_bus.py
   test_pi_evidence_contract_cli_v1.py
   test_pi_evidence_contract_v1.py
+  test_pi_methodology_permit_v1.py
   test_pi_tool_call_mapping.py
   test_tool_gate.py
 patterns/

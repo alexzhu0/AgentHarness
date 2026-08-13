@@ -146,7 +146,8 @@ Expected for T042: no new T042 edits. Existing pre-T042 milestone diffs must be
 classified before staging.
 
 ```bash
-git -C /home/alex/DTAlex/learningGitHub/pi status --short -- \
+: "${PI_REPO:?set it to the local Pi checkout}"
+git -C "$PI_REPO" status --short -- \
   .pi scripts packages/coding-agent/src packages/coding-agent/test \
   package.json package-lock.json pnpm-lock.yaml yarn.lock
 ```

@@ -112,7 +112,8 @@ Before any future task may plan live Pi execution, reviewers should require:
 - [ ] Confirm Pi has no T041 diff beyond pre-existing T040 work:
 
   ```bash
-  git -C /home/alex/DTAlex/learningGitHub/pi diff -- \
+  : "${PI_REPO:?set it to the local Pi checkout}"
+  git -C "$PI_REPO" diff -- \
     packages/coding-agent/src packages/coding-agent/test \
     package.json package-lock.json pnpm-lock.yaml yarn.lock
   ```
@@ -137,7 +138,8 @@ Expected for T041: no new T041 output. Any existing diff must be classified as
 pre-existing and outside this docs/release-only task.
 
 ```bash
-git -C /home/alex/DTAlex/learningGitHub/pi diff -- \
+: "${PI_REPO:?set it to the local Pi checkout}"
+git -C "$PI_REPO" diff -- \
   packages/coding-agent/src \
   packages/coding-agent/test \
   package.json package-lock.json pnpm-lock.yaml yarn.lock
