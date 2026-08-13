@@ -18,6 +18,17 @@
 - Preserve unrelated user configuration and do not record credentials or raw configuration values.
 - Do not push, tag, publish, deploy, or enable runtime tool execution.
 
+## Execution record
+
+- All steps below were completed on 2026-08-13.
+- OMX cleanup removed Codex's Superpowers registration while preserving the
+  plugin cache. The official plugin was re-added after cleanup and verified as
+  installed/enabled before the npm launcher was removed.
+- The first retirement location used `/tmp`; review identified its permissions
+  and volatility as unsafe for session metadata. The retained state was moved
+  to the private persistent path in this plan, with directories set to `0700`
+  and files set to `0600`.
+
 ---
 
 ### Task 1: Lock the WSL-only migration design and baseline
@@ -30,7 +41,7 @@
 - Consumes: current WSL `codex`, `omx`, npm, Git, and repository state.
 - Produces: a reviewed WSL-only design and this executable plan.
 
-- [ ] **Step 1: Confirm that Windows and Claude are outside the design**
+- [x] **Step 1: Confirm that Windows and Claude are outside the design**
 
 Run:
 
@@ -41,7 +52,7 @@ rg -n "Windows|Claude" \
 
 Expected: matches occur only in the explicit non-goal saying those hosts are not changed.
 
-- [ ] **Step 2: Validate plan and design formatting**
+- [x] **Step 2: Validate plan and design formatting**
 
 Run:
 
@@ -54,7 +65,7 @@ git diff --check
 
 Expected: `rg` returns no matches and `git diff --check` exits zero.
 
-- [ ] **Step 3: Commit the WSL-only design and plan**
+- [x] **Step 3: Commit the WSL-only design and plan**
 
 ```bash
 git add \
@@ -76,13 +87,13 @@ Expected: the staged list contains exactly the two Superpowers documents.
 - Consumes: configured `openai-curated` Codex marketplace.
 - Produces: enabled `superpowers@openai-curated` plugin and discoverable core skills.
 
-- [ ] **Step 1: Capture the pre-install registry result**
+- [x] **Step 1: Capture the pre-install registry result**
 
 Run: `codex plugin list`
 
 Expected: the baseline reports either not installed or installed/enabled.
 
-- [ ] **Step 2: Install Superpowers only if missing**
+- [x] **Step 2: Install Superpowers only if missing**
 
 Run when missing:
 
@@ -92,7 +103,7 @@ codex plugin add superpowers@openai-curated --json
 
 Expected: JSON reports a successful install for `superpowers` from `openai-curated`.
 
-- [ ] **Step 3: Verify registry and skill discovery**
+- [x] **Step 3: Verify registry and skill discovery**
 
 Run:
 
@@ -113,18 +124,19 @@ Expected: the registry reports installed/enabled and every `test` exits zero.
 **Files:**
 - Modify outside repository: OMX-managed entries under `/home/alex/.codex/`
 - Remove outside repository: global npm package `oh-my-codex`
-- Create temporarily: `/tmp/agentharness-omx-migration-20260813/`
+- Create privately: `/home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement/`
 
 **Interfaces:**
 - Consumes: OMX ownership metadata, global Codex configuration, and the npm global package registry.
 - Produces: WSL Codex configuration without active OMX hooks/overlays and no `omx` executable.
 
-- [ ] **Step 1: Record a metadata-only pre-removal snapshot**
+- [x] **Step 1: Record a metadata-only pre-removal snapshot**
 
 Run:
 
 ```bash
-mkdir -p /tmp/agentharness-omx-migration-20260813
+install -d -m 700 \
+  /home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement
 find /home/alex/.codex -maxdepth 2 -type f \
   \( -name 'AGENTS.md' -o -name 'config.toml' -o -name 'hooks.json' \) \
   -print -exec sha256sum {} \;
@@ -134,19 +146,19 @@ command -v omx
 
 Expected: output records paths and hashes only; npm and `command -v` confirm the pre-removal installation.
 
-- [ ] **Step 2: Preview ownership-aware cleanup**
+- [x] **Step 2: Preview ownership-aware cleanup**
 
 Run: `omx uninstall --dry-run --verbose`
 
 Expected: the preview targets OMX-owned Codex files and configuration entries, does not target the `openai-curated` Superpowers plugin, and does not target unrelated user content.
 
-- [ ] **Step 3: Run the OMX-owned uninstaller**
+- [x] **Step 3: Run the OMX-owned uninstaller**
 
 Run: `omx uninstall --verbose`
 
 Expected: it reports successful removal of OMX-managed Codex surfaces without deleting foreign configuration.
 
-- [ ] **Step 4: Restore and verify Superpowers before removing the launcher**
+- [x] **Step 4: Restore and verify Superpowers before removing the launcher**
 
 Run:
 
@@ -166,17 +178,27 @@ plugin cache intact. Re-adding the official plugin after cleanup restores the
 installed/enabled registration; the scan has no active managed OMX references,
 and missing removed files are acceptable.
 
-- [ ] **Step 5: Remove and verify the global npm package**
+- [x] **Step 5: Retire remaining state and remove the global npm package**
 
 Run:
 
 ```bash
+mv /home/alex/.codex/.omx \
+  /home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement/codex-dot-omx
+mv /home/alex/.omx \
+  /home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement/home-dot-omx
+find /home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement \
+  -type d -exec chmod 700 {} +
+find /home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement \
+  -type f -exec chmod 600 {} +
 npm uninstall -g oh-my-codex
 npm ls -g --depth=0 oh-my-codex
 command -v omx
 ```
 
-Expected: uninstall succeeds; the final two commands return non-zero because the package and executable are absent.
+Expected: state is retained under a private persistent path; uninstall succeeds;
+the final two commands return non-zero because the package and executable are
+absent.
 
 ### Task 4: Retire AgentHarness OMX state and publish the workflow contract
 
@@ -190,7 +212,7 @@ Expected: uninstall succeeds; the final two commands return non-zero because the
 - Consumes: the approved migration design and installed WSL Superpowers workflow.
 - Produces: repository-local Superpowers-only guidance with inert historical OMX evidence.
 
-- [ ] **Step 1: Add the Superpowers workflow contract to `AGENTS.md`**
+- [x] **Step 1: Add the Superpowers workflow contract to `AGENTS.md`**
 
 Add this section:
 
@@ -205,7 +227,7 @@ Add this section:
 - Existing `.omx` plans, context, logs, and historical release references are provenance only and do not define the active workflow.
 ```
 
-- [ ] **Step 2: Add a concise contributor pointer to `README.md`**
+- [x] **Step 2: Add a concise contributor pointer to `README.md`**
 
 Add immediately after the repository-guidance entry:
 
@@ -216,7 +238,7 @@ Development workflow: new work uses Superpowers only. See
 Historical OMX references document earlier work and are not active workflow instructions.
 ```
 
-- [ ] **Step 3: Move active `.omx` runtime files to the retirement directory**
+- [x] **Step 3: Move active `.omx` runtime files to the retirement directory**
 
 Resolve exact targets:
 
@@ -224,12 +246,16 @@ Resolve exact targets:
 find .omx -maxdepth 1 \
   \( -name state -o -name hud-config.json -o -name setup-scope.json -o -name metrics.json \) \
   -print
-mkdir -p /tmp/agentharness-omx-migration-20260813/repository-runtime
+install -d -m 700 \
+  /home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement/repository-runtime
 ```
 
-Move only printed targets into `/tmp/agentharness-omx-migration-20260813/repository-runtime/`. Do not move `.omx/plans`, `.omx/context`, or `.omx/logs`.
+Move only printed targets into
+`/home/alex/.local/state/agentharness/migrations/2026-08-13-omx-retirement/repository-runtime/`.
+Then set its directories to `0700` and files to `0600`. Do not move
+`.omx/plans`, `.omx/context`, or `.omx/logs`.
 
-- [ ] **Step 4: Verify the repository-local cutover**
+- [x] **Step 4: Verify the repository-local cutover**
 
 Run:
 
@@ -257,21 +283,29 @@ Expected: historical directories exist, active runtime targets do not, and both 
 - Consumes: verified WSL global and repository-local migration results.
 - Produces: a dated, non-release migration record with reproducible evidence.
 
-- [ ] **Step 1: Run exact-name GSD checks**
+- [x] **Step 1: Run exact-name GSD checks**
 
 Run:
 
 ```bash
-find /home/alex/.codex -type f -o -type d | awk -F/ '{print $NF}' | \
-  rg -i '^(gsd|get-shit-done)([-_.].*)?$'
-npm ls -g --depth=0 | rg -i '(^|[[:space:]])(gsd|get-shit-done)(@|[[:space:]]|$)'
-command -v gsd
-git log --all --oneline --grep='(^|[[:space:]])(GSD|get-shit-done)([[:space:]]|$)'
+set -o pipefail
+if find /home/alex/.codex \( -type f -o -type d \) -printf '%f\n' | \
+  rg -i '^(gsd|get-shit-done)([-_.].*)?$'; then exit 1; fi
+if codex plugin list 2>/dev/null | awk '{print $1}' | \
+  rg -i '^(gsd|get-shit-done)(@|$)'; then exit 1; fi
+if npm ls -g --depth=0 2>/dev/null | \
+  rg -i '(^|[[:space:]])(gsd|get-shit-done)(@|[[:space:]]|$)'; then exit 1; fi
+if command -v gsd; then exit 1; fi
+if git ls-files | awk -F/ '{print $NF}' | \
+  rg -i '^(gsd|get-shit-done)([-_.].*)?$'; then exit 1; fi
+if git log --all --format='%H%x09%s' | \
+  rg -i '(^|[[:space:]])(gsd|get-shit-done)([[:space:]]|$)'; then exit 1; fi
+echo 'PASS exact GSD absence checks'
 ```
 
 Expected: no exact installed skill, plugin, package, executable, or matching AgentHarness commit is reported. Non-zero no-match exits are success evidence.
 
-- [ ] **Step 2: Write the dated migration record**
+- [x] **Step 2: Write the dated migration record**
 
 Create `release/2026.08.13.md` containing:
 
@@ -283,7 +317,7 @@ Create `release/2026.08.13.md` containing:
 - repository verification commands and fresh pass counts/timings;
 - a statement that the record is not a tag, publication, deployment, runtime authorization, or production certification.
 
-- [ ] **Step 3: Index the record newest first**
+- [x] **Step 3: Index the record newest first**
 
 Add this first list item to `release/README.md`:
 
@@ -301,7 +335,7 @@ Add this first list item to `release/README.md`:
 - Consumes: all migration deliverables.
 - Produces: fresh completion evidence and a clean, reviewable Git commit.
 
-- [ ] **Step 1: Run repository-native functional verification**
+- [x] **Step 1: Run repository-native functional verification**
 
 Run:
 
@@ -315,7 +349,7 @@ PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -q
 
 Expected: validation passes, smoke evaluation is `3/3`, both loop checks pass, and the full test suite reports all tests passing.
 
-- [ ] **Step 2: Run documentation and workspace checks**
+- [x] **Step 2: Run documentation and workspace checks**
 
 Run the repository's existing Markdown-link checker if one is present; otherwise validate all tracked relative Markdown links with a read-only script. Then run:
 
@@ -329,7 +363,7 @@ find . -maxdepth 3 \
 
 Expected: links resolve, whitespace check passes, status contains only intended migration documents, and no generated cache/build artifacts are present.
 
-- [ ] **Step 3: Re-verify global completion claims**
+- [x] **Step 3: Re-verify global completion claims**
 
 Run:
 
@@ -343,7 +377,7 @@ command -v gsd
 
 Expected: Superpowers is installed/enabled; the last three absence checks return non-zero.
 
-- [ ] **Step 4: Commit only intended repository files**
+- [x] **Step 4: Commit only intended repository files**
 
 ```bash
 git add AGENTS.md README.md \

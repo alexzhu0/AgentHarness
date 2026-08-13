@@ -118,7 +118,11 @@ The ignored `.omx/` directory is classified as local historical provenance.
 
 - Existing plans, context, and logs may remain locally.
 - Active runtime state, HUD configuration, setup state, and metrics are moved
-  out of the repository to a recoverable temporary retirement directory.
+  out of the repository to the private persistent retirement directory
+  `~/.local/state/agentharness/migrations/2026-08-13-omx-retirement/`.
+- The retirement directory and all subdirectories use mode `0700`; contained
+  files use mode `0600` so session metadata is not exposed to other local
+  users.
 - No new AgentHarness plan, task state, or handoff may be written there.
 - `.omx/` remains excluded from Git.
 - Raw logs must not be copied into tracked documentation.
