@@ -187,8 +187,8 @@ and not runtime authorization:
 Current AgentHarness-only local maintenance closure:
 [`docs/29`](docs/29-agentharness-maintenance-closure.md)
 
-Latest local release record, dated 2026-08-11:
-[`release/2026.08.11.md`](release/2026.08.11.md)
+Latest local release record, dated 2026-08-13:
+[`release/2026.08.13.md`](release/2026.08.13.md)
 
 Historical 2026-07-13 documentation/package handoff note:
 [`release/2026.07.13.md`](release/2026.07.13.md)
@@ -198,6 +198,12 @@ Complete local release-record index, newest first:
 
 Repository maintenance and verification rules:
 [`AGENTS.md`](AGENTS.md)
+
+Development workflow: new work uses Superpowers only. See
+[`AGENTS.md`](AGENTS.md) and the
+[WSL migration design](docs/superpowers/specs/2026-08-13-omx-to-superpowers-migration-design.md).
+Historical OMX references document earlier work and are not active workflow
+instructions.
 
 Enterprise audit report schema: [`schemas/enterprise_audit_report.schema.yaml`](schemas/enterprise_audit_report.schema.yaml)
 

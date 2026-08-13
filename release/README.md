@@ -3,6 +3,7 @@
 These source-tree records are ordered newest first. A record does not by itself
 mean that a Git tag, remote release, package publication, or deployment exists.
 
+- [2026-08-13 — WSL Superpowers workflow migration](2026.08.13.md)
 - [2026-08-11 — AgentHarness local maintenance closure](2026.08.11.md)
 - [2026-07-13 — AgentHarness/Pi shadow milestone handoff](2026.07.13.md)
 - [2026-07-07 — Release index and review reset rules](2026.07.07.md)

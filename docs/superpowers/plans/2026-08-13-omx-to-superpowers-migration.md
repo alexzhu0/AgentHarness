@@ -98,12 +98,12 @@ Run:
 
 ```bash
 codex plugin list
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/using-superpowers/SKILL.md
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/brainstorming/SKILL.md
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/writing-plans/SKILL.md
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/test-driven-development/SKILL.md
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/requesting-code-review/SKILL.md
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/verification-before-completion/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/using-superpowers/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/brainstorming/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/writing-plans/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/test-driven-development/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/requesting-code-review/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/verification-before-completion/SKILL.md
 ```
 
 Expected: the registry reports installed/enabled and every `test` exits zero.
@@ -146,20 +146,25 @@ Run: `omx uninstall --verbose`
 
 Expected: it reports successful removal of OMX-managed Codex surfaces without deleting foreign configuration.
 
-- [ ] **Step 4: Verify Superpowers survived before removing the launcher**
+- [ ] **Step 4: Restore and verify Superpowers before removing the launcher**
 
 Run:
 
 ```bash
 codex plugin list
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/using-superpowers/SKILL.md
+codex plugin add superpowers@openai-curated --json
+codex plugin list
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/using-superpowers/SKILL.md
 rg -n "OMX|oh-my-codex|omx" \
   /home/alex/.codex/AGENTS.md \
   /home/alex/.codex/config.toml \
   /home/alex/.codex/hooks.json 2>/dev/null
 ```
 
-Expected: Superpowers remains installed/enabled and the scan has no active managed OMX references; missing removed files are acceptable.
+Expected: OMX cleanup may remove Codex's plugin registration while leaving the
+plugin cache intact. Re-adding the official plugin after cleanup restores the
+installed/enabled registration; the scan has no active managed OMX references,
+and missing removed files are acceptable.
 
 - [ ] **Step 5: Remove and verify the global npm package**
 
@@ -330,7 +335,7 @@ Run:
 
 ```bash
 codex plugin list
-test -f /home/alex/.codex/plugins/cache/openai-curated-remote/superpowers/6.2.0/skills/using-superpowers/SKILL.md
+test -f /home/alex/.codex/plugins/cache/openai-curated/superpowers/11c74d6b/skills/using-superpowers/SKILL.md
 npm ls -g --depth=0 oh-my-codex
 command -v omx
 command -v gsd
@@ -341,11 +346,13 @@ Expected: Superpowers is installed/enabled; the last three absence checks return
 - [ ] **Step 4: Commit only intended repository files**
 
 ```bash
-git add AGENTS.md README.md release/2026.08.13.md release/README.md
+git add AGENTS.md README.md \
+  docs/superpowers/plans/2026-08-13-omx-to-superpowers-migration.md \
+  release/2026.08.13.md release/README.md
 git diff --cached --check
 git diff --cached --name-only
 git commit -m "Migrate AgentHarness workflow to Superpowers"
 git status --short --branch
 ```
 
-Expected: the staged list contains exactly four files, the commit succeeds, and the final working tree is clean.
+Expected: the staged list contains exactly five files, the commit succeeds, and the final working tree is clean.

@@ -1,5 +1,23 @@
 # AgentHarness Repository Guidance
 
+## Development workflow
+
+- Superpowers is the only active development workflow for new AgentHarness
+  work.
+- Load `superpowers:using-superpowers` before task actions and apply the
+  relevant Superpowers skills.
+- Use `superpowers:brainstorming` and an approved design before creative or
+  behavior-changing work. Use `superpowers:writing-plans` for multi-step
+  implementation.
+- Use `superpowers:test-driven-development` for behavior changes,
+  `superpowers:systematic-debugging` for failures,
+  `superpowers:requesting-code-review` before integration, and
+  `superpowers:verification-before-completion` before completion claims.
+- Do not start OMX, `ralplan`, team-runtime, or new `.omx` task state for this
+  repository unless the user explicitly reverses this migration.
+- Existing `.omx` plans, context, logs, and historical release references are
+  provenance only and do not define the active workflow.
+
 ## Product boundary
 
 - AgentHarness is a pre-execution evidence control-plane. It does not own or
