@@ -81,16 +81,66 @@ class EvalCliTests(unittest.TestCase):
         self.assertEqual("", stderr)
         self.assertEqual("argument.invalid", json.loads(stdout)["error"]["code"])
 
-    def test_text_conflicting_selectors_remain_standard_argparse_error(self) -> None:
+    def test_text_conflicting_selectors_become_safe_argument_error(self) -> None:
+        code, stdout, stderr = _run_cli(
+            ["eval", "--all", "--cases", "/private/case"]
+        )
+
+        self.assertEqual(2, code)
+        self.assertEqual("", stdout)
+        self.assertEqual("ERROR: argument.invalid\n", stderr)
+        self.assertNotIn("/private/case", stderr)
+
+    def test_invalid_eval_arguments_never_echo_absolute_or_credential_values(self) -> None:
+        cases = (
+            (
+                ["eval", "--unknown", "/home/private/policy.yaml"],
+                "text",
+                "/home/private/policy.yaml",
+            ),
+            (
+                ["eval", "--unknown", "sk-test-credential", "--format", "json"],
+                "json",
+                "sk-test-credential",
+            ),
+            (
+                ["eval", "--unknown", "/private/junit.xml", "--format", "junit"],
+                "junit",
+                "/private/junit.xml",
+            ),
+        )
+
+        for argv, output_format, secret in cases:
+            with self.subTest(output_format=output_format):
+                code, stdout, stderr = _run_cli(argv)
+                self.assertEqual(2, code)
+                self.assertNotIn(secret, stdout + stderr)
+                _assert_argument_error(self, output_format, stdout, stderr)
+
+    def test_overlong_and_over_count_eval_argv_fail_without_argparse_output(self) -> None:
+        cases = (
+            (["eval", "--cases", "x" * 4097], "text"),
+            (["eval", "--format", "json"] + ["--unknown"] * 129, "json"),
+            (["eval", "--format=junit"] + ["value"] * 129, "junit"),
+        )
+
+        for argv, output_format in cases:
+            with self.subTest(output_format=output_format):
+                code, stdout, stderr = _run_cli(argv)
+                self.assertEqual(2, code)
+                _assert_argument_error(self, output_format, stdout, stderr)
+                self.assertLess(len(stdout + stderr), 512)
+
+    def test_eval_help_remains_standard_argparse_help(self) -> None:
         stdout = StringIO()
         stderr = StringIO()
         with redirect_stdout(stdout), redirect_stderr(stderr):
             with self.assertRaises(SystemExit) as raised:
-                main(["eval", "--all", "--cases", "PI-001"])
+                main(["eval", "--help"])
 
-        self.assertEqual(2, raised.exception.code)
-        self.assertEqual("", stdout.getvalue())
-        self.assertIn("not allowed with argument", stderr.getvalue())
+        self.assertEqual(0, raised.exception.code)
+        self.assertIn("usage: agentharness eval", stdout.getvalue())
+        self.assertEqual("", stderr.getvalue())
 
     def test_non_eval_help_remains_standard_argparse_help(self) -> None:
         stdout = StringIO()
@@ -102,6 +152,18 @@ class EvalCliTests(unittest.TestCase):
         self.assertEqual(0, raised.exception.code)
         self.assertIn("usage: agentharness", stdout.getvalue())
         self.assertEqual("", stderr.getvalue())
+
+    def test_non_eval_argparse_failure_remains_standard(self) -> None:
+        stdout = StringIO()
+        stderr = StringIO()
+        with redirect_stdout(stdout), redirect_stderr(stderr):
+            with self.assertRaises(SystemExit) as raised:
+                main(["validate", "--unknown", "/private/policy.yaml"])
+
+        self.assertEqual(2, raised.exception.code)
+        self.assertEqual("", stdout.getvalue())
+        self.assertIn("usage: agentharness", stderr.getvalue())
+        self.assertIn("unrecognized arguments: --unknown", stderr.getvalue())
 
     def test_unknown_case_is_safe_json_contract_error(self) -> None:
         code, stdout, stderr = _run_cli(
@@ -220,7 +282,7 @@ class EvalCliTests(unittest.TestCase):
         self.assertNotIn(str(path), stderr)
 
     def test_unknown_assertion_is_safe_json_contract_error(self) -> None:
-        suite = _suite_with_case("X-001", assertion_op="execute")
+        suite = _suite_with_case("PI-001", assertion_op="execute")
         with _temporary_suite(suite) as path:
             code, stdout, stderr = _run_cli(
                 ["eval", "--suite", str(path), "--all", "--format", "json"]
@@ -288,6 +350,39 @@ class EvalCliTests(unittest.TestCase):
         self.assertEqual("contract", error.attrib["type"])
         self.assertEqual("report.invalid_xml_text", error.attrib["message"])
 
+    def test_untrusted_pass_messages_fail_preflight_in_every_format(self) -> None:
+        unsafe_messages = (
+            ('"safe\\nPASS SPOOF: injected"', "PASS SPOOF"),
+            ('"safe\\x01control"', "control"),
+            ('"/home/private/eval-output"', "/home/private"),
+            ('"sk-test-credential-value"', "sk-test-credential"),
+        )
+        formats = ("text", "json", "junit")
+
+        for pass_message, leaked_fragment in unsafe_messages:
+            for output_format in formats:
+                with self.subTest(
+                    pass_message=pass_message, output_format=output_format
+                ):
+                    suite = _suite_with_case(
+                        "PI-001", pass_message=pass_message
+                    )
+                    with _temporary_suite(suite) as path:
+                        argv = ["eval", "--suite", str(path), "--all"]
+                        if output_format != "text":
+                            argv.extend(("--format", output_format))
+                        code, stdout, stderr = _run_cli(argv)
+
+                    self.assertEqual(2, code)
+                    self.assertNotIn(leaked_fragment, stdout + stderr)
+                    _assert_contract_error(
+                        self,
+                        output_format,
+                        stdout,
+                        stderr,
+                        "case.pass_message_untrusted",
+                    )
+
 
 class EvalCliEndToEndTests(unittest.TestCase):
     def test_installed_style_entry_point_emits_json_without_importing_test_helpers(
@@ -315,6 +410,35 @@ def _run_cli(argv: list[str]) -> tuple[int, str, str]:
     return code, stdout.getvalue(), stderr.getvalue()
 
 
+def _assert_argument_error(
+    test: unittest.TestCase, output_format: str, stdout: str, stderr: str
+) -> None:
+    _assert_contract_error(
+        test, output_format, stdout, stderr, "argument.invalid"
+    )
+
+
+def _assert_contract_error(
+    test: unittest.TestCase,
+    output_format: str,
+    stdout: str,
+    stderr: str,
+    code: str,
+) -> None:
+    if output_format == "text":
+        test.assertEqual("", stdout)
+        test.assertEqual(f"ERROR: {code}\n", stderr)
+    elif output_format == "json":
+        test.assertEqual("", stderr)
+        test.assertEqual(code, json.loads(stdout)["error"]["code"])
+    else:
+        test.assertEqual("", stderr)
+        error = ElementTree.fromstring(stdout).find("./testcase/error")
+        test.assertIsNotNone(error)
+        assert error is not None
+        test.assertEqual(code, error.attrib["message"])
+
+
 class _temporary_suite:
     def __init__(self, source: str) -> None:
         self.source = source
@@ -333,24 +457,41 @@ class _temporary_suite:
 
 
 def _suite_with_case(
-    case_id: str, *, evaluator: str = "policy_controls", assertion_op: str = "equals"
+    case_id: str,
+    *,
+    evaluator: str = "policy_controls",
+    assertion_op: str = "equals",
+    pass_message: str | None = None,
 ) -> str:
     return "version: v1\nname: safe-suite\ncases:\n" + _case_yaml(
-        case_id, evaluator=evaluator, assertion_op=assertion_op
+        case_id,
+        evaluator=evaluator,
+        assertion_op=assertion_op,
+        pass_message=pass_message,
     )
 
 
 def _case_yaml(
-    case_id: str, *, evaluator: str = "policy_controls", assertion_op: str = "equals"
+    case_id: str,
+    *,
+    evaluator: str = "policy_controls",
+    assertion_op: str = "equals",
+    pass_message: str | None = None,
 ) -> str:
+    if pass_message is None:
+        pass_message = {
+            "PI-001": "untrusted content is non-executable and prompt disclosure is guarded",
+            "PD-001": "hidden instruction disclosure is guarded",
+            "SEC-001": "secrets are never revealed and redaction is required",
+        }.get(case_id, "safe message")
     return f"""  - id: {case_id}
     title: Safe case
     tags: [policy]
     evaluator: {evaluator}
-    input: {{}}
+    input: {{policy: default}}
     assertions:
       - {{op: {assertion_op}, path: secrets_never_revealed, expected: true}}
-    pass_message: safe message
+    pass_message: {pass_message}
 """
 
 

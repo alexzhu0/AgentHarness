@@ -84,6 +84,88 @@ class EvalRunnerTests(unittest.TestCase):
         with self.assertRaisesRegex(EvalContractError, "evaluator.unknown"):
             run_eval_cases((case,), {"policy": self.policy})
 
+    def test_every_case_is_preflighted_before_any_evaluator_runs(self) -> None:
+        """Interleaving validation and execution would allow partial evaluation."""
+        original = EVALUATORS["policy_controls"]
+        calls: list[str] = []
+
+        def evaluator(_fixtures, case):
+            calls.append(case.case_id)
+            return {
+                "untrusted_content_is_data": True,
+                "prompt_disclosure_is_guarded": True,
+            }
+
+        EVALUATORS["policy_controls"] = evaluator
+        self.addCleanup(EVALUATORS.__setitem__, "policy_controls", original)
+        invalid_cases = (
+            (
+                replace(self.pi_case, evaluator="shell"),
+                "evaluator.unknown",
+            ),
+            (
+                replace(self.pi_case, input={"policy": "alternate"}),
+                "evaluator.input_invalid",
+            ),
+            (
+                replace(
+                    self.pi_case,
+                    input={"policy": "default", "extra": "default"},
+                ),
+                "evaluator.input_invalid",
+            ),
+            (
+                replace(self.pi_case, pass_message="PASS SPOOF\n/home/private"),
+                "case.pass_message_untrusted",
+            ),
+            (
+                replace(
+                    self.pi_case,
+                    case_id="X-001",
+                    pass_message="unknown success binding",
+                ),
+                "case.pass_message_untrusted",
+            ),
+            (
+                replace(
+                    self.pi_case,
+                    assertions=(EvalAssertionSpec("execute", "value", True),),
+                ),
+                "assertion.unknown_operation",
+            ),
+        )
+
+        for invalid_case, error_code in invalid_cases:
+            with self.subTest(error_code=error_code, case=invalid_case):
+                calls.clear()
+                with self.assertRaisesRegex(EvalContractError, error_code):
+                    run_eval_cases(
+                        (self.pi_case, invalid_case), {"policy": self.policy}
+                    )
+                self.assertEqual([], calls)
+
+    def test_case_input_resolves_only_the_selected_default_policy_fixture(self) -> None:
+        """Ignoring case.input would pass every fixture through to the evaluator."""
+        original = EVALUATORS["policy_controls"]
+        received: list[Mapping[str, object]] = []
+
+        def evaluator(fixtures, _case):
+            received.append(fixtures)
+            return {
+                "untrusted_content_is_data": True,
+                "prompt_disclosure_is_guarded": True,
+            }
+
+        EVALUATORS["policy_controls"] = evaluator
+        self.addCleanup(EVALUATORS.__setitem__, "policy_controls", original)
+
+        run_eval_cases(
+            (self.pi_case,),
+            {"policy": self.policy, "ignored": {"unsafe": True}},
+        )
+
+        self.assertEqual([{"policy": self.policy}], received)
+
     def test_missing_or_non_mapping_policy_fixture_fails_closed(self) -> None:
         """Changing fixture validation would let evaluator inputs escape its contract."""
         for fixtures in ({}, {"policy": []}):

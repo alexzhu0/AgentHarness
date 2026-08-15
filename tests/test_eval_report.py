@@ -76,6 +76,19 @@ class EvalReportTests(unittest.TestCase):
         self.assertNotIn(str(ROOT), first)
         self.assertTrue(first.endswith("\n"))
 
+    def test_json_wire_is_exact_compact_sorted_utf8_with_one_newline(self) -> None:
+        """Changing JSON options or case fields would break the stable wire contract."""
+        report = EvalRunReport(
+            (EvalCaseResult("PI-001", "PASS", (), "安全检查通过"),)
+        )
+
+        self.assertEqual(
+            '{"cases":[{"case_id":"PI-001","message":"安全检查通过","reason_codes":[],"status":"PASS"}],'
+            '"result_status":"PASS","schema_id":"agentharness.eval.report.v1",'
+            '"summary":{"failed":0,"passed":1,"total":1}}\n',
+            format_eval_json(report),
+        )
+
     def test_junit_is_valid_and_has_one_case_per_result(self) -> None:
         root = ElementTree.fromstring(format_eval_junit(self.report))
         self.assertEqual("agentharness.eval", root.attrib["name"])

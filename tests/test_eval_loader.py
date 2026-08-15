@@ -273,11 +273,11 @@ cases:
 
         self.assertEqual(("PI-001", "SEC-001"), tuple(c.case_id for c in selected))
 
-    def test_case_id_selection_uses_requested_order(self) -> None:
-        """Changing explicit ID selection would alter a caller's requested order."""
+    def test_case_id_selection_uses_suite_order_after_validating_requests(self) -> None:
+        """Changing explicit ID selection would make report order caller-dependent."""
         selected = select_eval_cases(self.cases, case_ids=("SEC-001", "PI-001"))
 
-        self.assertEqual(("SEC-001", "PI-001"), tuple(c.case_id for c in selected))
+        self.assertEqual(("PI-001", "SEC-001"), tuple(c.case_id for c in selected))
 
     def test_select_all_uses_suite_order(self) -> None:
         """Changing all-selection would make reports nondeterministic."""

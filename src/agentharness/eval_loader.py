@@ -112,13 +112,13 @@ def select_eval_cases(
         return ordered_cases
     if requested_ids:
         by_id = {case.case_id: case for case in ordered_cases}
-        selected: list[EvalCaseSpec] = []
         for case_id in requested_ids:
-            case = by_id.get(case_id)
-            if case is None:
+            if case_id not in by_id:
                 raise EvalContractError("selection.case_not_found")
-            selected.append(case)
-        return tuple(selected)
+        requested_id_set = frozenset(requested_ids)
+        return tuple(
+            case for case in ordered_cases if case.case_id in requested_id_set
+        )
 
     requested_tag_set = frozenset(requested_tags)
     selected = tuple(

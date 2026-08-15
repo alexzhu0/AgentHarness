@@ -26,7 +26,7 @@ from .eval_report import (
     format_eval_junit,
     format_eval_text,
 )
-from .eval_runner import run_eval_cases
+from .eval_runner import preflight_eval_cases, run_eval_cases
 from .handoff_exporter import build_handoff_export_package
 from .handoff_manifest import (
     build_handoff_export_manifest,
@@ -61,20 +61,25 @@ DEFAULT_SCHEMA = "schemas/agent_policy.schema.yaml"
 DEFAULT_POLICY = "examples/agent_policy.example.yaml"
 DEFAULT_SUITE = "evals/agent_safety_eval_suite.yaml"
 DEFAULT_CASES = "PI-001,PD-001,SEC-001"
+MAX_EVAL_ARG_COUNT = 128
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
-    machine_format = _requested_eval_machine_format(argv)
+    values = sys.argv[1:] if argv is None else argv
+    is_eval = _is_eval_invocation(values)
+    eval_format = _requested_eval_format(values) if is_eval else "text"
+    if is_eval and not _eval_argv_is_bounded(values):
+        return _emit_eval_error_for_format(eval_format, "argument.invalid")
     try:
-        if machine_format is None:
-            args = parser.parse_args(argv)
-        else:
+        if is_eval:
             with redirect_stderr(StringIO()):
                 args = parser.parse_args(argv)
+        else:
+            args = parser.parse_args(argv)
     except SystemExit as exc:
-        if machine_format is not None and exc.code != 0:
-            return _emit_eval_error_for_format(machine_format, "argument.invalid")
+        if is_eval and exc.code != 0:
+            return _emit_eval_error_for_format(eval_format, "argument.invalid")
         raise
     try:
         return args.func(args)
@@ -278,6 +283,8 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     requested = _csv_values(args.cases) if args.cases is not None else None
     tags = _csv_values(args.tags) if args.tags is not None else None
     suite = load_eval_suite(args.suite)
+    fixtures = {"policy": policy}
+    preflight_eval_cases(suite, fixtures)
     if args.cases is not None and not requested:
         raise EvalContractError("selection.case_not_found")
     if args.tags is not None and not tags:
@@ -290,7 +297,7 @@ def _cmd_eval(args: argparse.Namespace) -> int:
         tags=tags,
         select_all=args.select_all,
     )
-    eval_report = run_eval_cases(cases, {"policy": policy})
+    eval_report = run_eval_cases(cases, fixtures)
     formatter = {
         "text": format_eval_text,
         "json": format_eval_json,
@@ -322,29 +329,44 @@ def _emit_eval_error_for_format(
     return 2
 
 
-def _requested_eval_machine_format(argv: Sequence[str] | None) -> str | None:
-    """Return a requested eval machine format without interpreting other argv data."""
-
-    values = sys.argv[1:] if argv is None else argv
+def _is_eval_invocation(values: Sequence[str]) -> bool:
     try:
-        if (
-            len(values) > 128
-            or not values
-            or any(type(value) is not str or len(value) > MAX_SCALAR_LENGTH for value in values)
-            or values[0] != "eval"
-        ):
-            return None
+        return bool(values) and type(values[0]) is str and values[0] == "eval"
     except (TypeError, IndexError):
-        return None
-    for index, value in enumerate(values):
-        if value.startswith("--format="):
-            candidate = value.split("=", 1)[1]
-            if candidate in {"json", "junit"}:
-                return candidate
-        if index + 1 < len(values) and value == "--format":
-            if values[index + 1] in {"json", "junit"}:
-                return values[index + 1]
-    return None
+        return False
+
+
+def _eval_argv_is_bounded(values: Sequence[str]) -> bool:
+    try:
+        if len(values) > MAX_EVAL_ARG_COUNT:
+            return False
+        return all(
+            type(value) is str and len(value) <= MAX_SCALAR_LENGTH
+            for value in values
+        )
+    except TypeError:
+        return False
+
+
+def _requested_eval_format(values: Sequence[str]) -> str:
+    """Identify only a bounded, explicitly requested machine report format."""
+
+    output_format = "text"
+    try:
+        scan_count = min(len(values), MAX_EVAL_ARG_COUNT)
+        for index in range(scan_count):
+            value = values[index]
+            if value == "--format=json":
+                output_format = "json"
+            elif value == "--format=junit":
+                output_format = "junit"
+            elif value == "--format" and index + 1 < scan_count:
+                candidate = values[index + 1]
+                if candidate in {"json", "junit"}:
+                    output_format = candidate
+    except (TypeError, IndexError):
+        return "text"
+    return output_format
 
 
 def _cmd_loop_check(args: argparse.Namespace) -> int:
