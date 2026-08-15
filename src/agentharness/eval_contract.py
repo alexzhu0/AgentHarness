@@ -64,13 +64,17 @@ def is_bounded_json_value(
         nodes += 1
         if nodes > max_nodes or depth > max_depth:
             return False
-        if current is None or isinstance(current, (bool, int)):
+        value_type = type(current)
+        if current is None or value_type is bool or value_type is int:
             return True
-        if isinstance(current, float):
+        if value_type is float:
             return math.isfinite(current)
-        if isinstance(current, str):
-            return len(current) <= MAX_SCALAR_LENGTH
-        if isinstance(current, Mapping):
+        if value_type is str:
+            try:
+                return len(current.encode("utf-8")) <= MAX_SCALAR_LENGTH
+            except UnicodeError:
+                return False
+        if value_type is dict:
             if len(current) > max_collection_length:
                 return False
             marker = id(current)
@@ -79,14 +83,14 @@ def is_bounded_json_value(
             seen.add(marker)
             try:
                 return all(
-                    isinstance(key, str)
+                    type(key) is str
                     and len(key) <= MAX_IDENTIFIER_LENGTH
                     and visit(item, depth + 1)
                     for key, item in current.items()
                 )
             finally:
                 seen.remove(marker)
-        if isinstance(current, (list, tuple)):
+        if value_type is list:
             if len(current) > max_collection_length:
                 return False
             marker = id(current)
