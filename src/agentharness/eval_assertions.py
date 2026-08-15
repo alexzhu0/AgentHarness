@@ -2,12 +2,17 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping
 from dataclasses import dataclass
 import math
 from typing import Any, Callable
 
-from .eval_contract import EvalAssertionSpec, EvalContractError, MAX_SCALAR_LENGTH
+from .eval_contract import (
+    EvalAssertionSpec,
+    EvalContractError,
+    MAX_COLLECTION_LENGTH,
+    MAX_IDENTIFIER_LENGTH,
+    MAX_SCALAR_LENGTH,
+)
 
 
 @dataclass(frozen=True)
@@ -42,9 +47,9 @@ def resolve_eval_path(value: Any, path: str) -> tuple[bool, Any]:
 
     current = value
     for segment in segments:
-        if isinstance(current, Mapping) and segment in current:
+        if type(current) is dict and segment in current:
             current = current[segment]
-        elif isinstance(current, list) and _is_list_index(segment):
+        elif type(current) is list and _is_list_index(segment):
             index = int(segment)
             if index >= len(current):
                 return False, None
@@ -61,6 +66,8 @@ def evaluate_assertion(
 
     if not isinstance(assertion, EvalAssertionSpec):
         raise EvalContractError("assertion.invalid")
+    if type(assertion.op) is not str:
+        raise EvalContractError("assertion.unknown_operation")
     operation = ASSERTION_OPERATIONS.get(assertion.op)
     if operation is None:
         raise EvalContractError("assertion.unknown_operation")
@@ -92,7 +99,12 @@ def _contains(result: Any, path: str, expected: Any) -> AssertionOutcome:
     found, actual = _resolve(result, path)
     if not found:
         return _PATH_MISSING
-    if type(actual) is not str or type(expected) is not str:
+    if (
+        type(actual) is not str
+        or type(expected) is not str
+        or not _is_safe_json_value(actual)
+        or not _is_safe_json_value(expected)
+    ):
         return _OPERAND_INVALID
     return _OK if expected in actual else _VALUE_MISMATCH
 
@@ -101,7 +113,12 @@ def _not_contains(result: Any, path: str, expected: Any) -> AssertionOutcome:
     found, actual = _resolve(result, path)
     if not found:
         return _PATH_MISSING
-    if type(actual) is not str or type(expected) is not str:
+    if (
+        type(actual) is not str
+        or type(expected) is not str
+        or not _is_safe_json_value(actual)
+        or not _is_safe_json_value(expected)
+    ):
         return _OPERAND_INVALID
     return _OK if expected not in actual else _VALUE_MISMATCH
 
@@ -143,25 +160,56 @@ def _list_non_empty(result: Any, path: str, expected: Any) -> AssertionOutcome:
 
 
 def _is_safe_json_value(value: Any) -> bool:
-    """Check values before comparisons so arbitrary magic methods cannot run."""
+    """Check bounded inert JSON values without recursion or user hooks."""
 
-    value_type = type(value)
-    if value is None or value_type is bool or value_type is int:
-        return True
-    if value_type is float:
-        return math.isfinite(value)
-    if value_type is str:
-        return len(value) <= MAX_SCALAR_LENGTH
-    if value_type in (list, tuple):
-        return all(_is_safe_json_value(item) for item in value)
-    if value_type is dict:
-        return all(
-            type(key) is str
-            and len(key) <= MAX_SCALAR_LENGTH
-            and _is_safe_json_value(item)
-            for key, item in value.items()
-        )
-    return False
+    # Use an explicit stack so hostile depth/cycles cannot exhaust Python's
+    # call stack. Exact built-in containers exclude overridden protocol hooks.
+    stack: list[tuple[Any, int, bool]] = [(value, 0, False)]
+    active: set[int] = set()
+    nodes = 0
+    while stack:
+        current, depth, exiting = stack.pop()
+        if exiting:
+            active.remove(id(current))
+            continue
+
+        nodes += 1
+        if nodes > 4096 or depth > 16:
+            return False
+        value_type = type(current)
+        if current is None or value_type is bool or value_type is int:
+            continue
+        if value_type is float:
+            if not math.isfinite(current):
+                return False
+            continue
+        if value_type is str:
+            if len(current) > MAX_SCALAR_LENGTH:
+                return False
+            continue
+        if value_type not in (dict, list, tuple):
+            return False
+        if len(current) > MAX_COLLECTION_LENGTH:
+            return False
+
+        marker = id(current)
+        if marker in active:
+            return False
+        active.add(marker)
+        stack.append((current, depth, True))
+        if value_type is dict:
+            items = tuple(current.items())
+            for key, item in reversed(items):
+                if (
+                    type(key) is not str
+                    or len(key) > MAX_IDENTIFIER_LENGTH
+                ):
+                    return False
+                stack.append((item, depth + 1, False))
+        else:
+            for item in reversed(current):
+                stack.append((item, depth + 1, False))
+    return True
 
 
 def _safe_equal(left: Any, right: Any) -> bool:
