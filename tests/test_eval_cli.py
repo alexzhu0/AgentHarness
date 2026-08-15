@@ -122,6 +122,8 @@ class EvalCliTests(unittest.TestCase):
             (["eval", "--cases", "x" * 4097], "text"),
             (["eval", "--format", "json"] + ["--unknown"] * 129, "json"),
             (["eval", "--format=junit"] + ["value"] * 129, "junit"),
+            (["eval"] + ["value"] * 128 + ["--format", "json"], "json"),
+            (["eval"] + ["value"] * 129 + ["--format=junit"], "junit"),
         )
 
         for argv, output_format in cases:

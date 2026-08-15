@@ -353,16 +353,18 @@ def _requested_eval_format(values: Sequence[str]) -> str:
 
     output_format = "text"
     try:
-        scan_count = min(len(values), MAX_EVAL_ARG_COUNT)
+        scan_count = len(values)
         for index in range(scan_count):
             value = values[index]
+            if type(value) is not str:
+                continue
             if value == "--format=json":
                 output_format = "json"
             elif value == "--format=junit":
                 output_format = "junit"
             elif value == "--format" and index + 1 < scan_count:
                 candidate = values[index + 1]
-                if candidate in {"json", "junit"}:
+                if type(candidate) is str and candidate in {"json", "junit"}:
                     output_format = candidate
     except (TypeError, IndexError):
         return "text"
