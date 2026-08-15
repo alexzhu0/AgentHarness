@@ -14,6 +14,8 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from agentharness.eval_contract import EvalContractError  # noqa: E402
 from agentharness.eval_report import (  # noqa: E402
+    format_eval_error_json,
+    format_eval_error_junit,
     format_eval_json,
     format_eval_junit,
     format_eval_text,
@@ -103,6 +105,16 @@ class EvalReportTests(unittest.TestCase):
         )
         with self.assertRaisesRegex(EvalContractError, "report.too_large"):
             format_eval_json(report)
+
+    def test_machine_error_formatters_emit_only_safe_error_documents(self) -> None:
+        self.assertEqual(
+            '{"error":{"code":"selection.case_not_found"},"result_status":"error","schema_id":"agentharness.eval.error.v1"}\n',
+            format_eval_error_json("selection.case_not_found"),
+        )
+        self.assertEqual(
+            '<testsuite name="agentharness.eval" tests="1" failures="0" errors="1"><testcase name="agentharness.eval.error"><error type="internal" message="evaluation.internal_error" /></testcase></testsuite>\n',
+            format_eval_error_junit("evaluation.internal_error", internal=True),
+        )
 
 
 if __name__ == "__main__":

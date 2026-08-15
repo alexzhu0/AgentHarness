@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import redirect_stderr
+from io import StringIO
 import json
 from pathlib import Path
 import sys
@@ -15,7 +17,16 @@ from .enterprise_audit_report import (
     enterprise_audit_error_payload,
     verify_enterprise_audit_report,
 )
-from .eval_runner import run_smoke_eval
+from .eval_contract import EvalContractError, MAX_SCALAR_LENGTH
+from .eval_loader import load_eval_suite, select_eval_cases
+from .eval_report import (
+    format_eval_error_json,
+    format_eval_error_junit,
+    format_eval_json,
+    format_eval_junit,
+    format_eval_text,
+)
+from .eval_runner import run_eval_cases
 from .handoff_exporter import build_handoff_export_package
 from .handoff_manifest import (
     build_handoff_export_manifest,
@@ -54,12 +65,33 @@ DEFAULT_CASES = "PI-001,PD-001,SEC-001"
 
 def main(argv: Sequence[str] | None = None) -> int:
     parser = _build_parser()
-    args = parser.parse_args(argv)
+    machine_format = _requested_eval_machine_format(argv)
+    try:
+        if machine_format is None:
+            args = parser.parse_args(argv)
+        else:
+            with redirect_stderr(StringIO()):
+                args = parser.parse_args(argv)
+    except SystemExit as exc:
+        if machine_format is not None and exc.code != 0:
+            return _emit_eval_error_for_format(machine_format, "argument.invalid")
+        raise
     try:
         return args.func(args)
-    except (YamlLoadError, ValueError) as exc:
+    except EvalContractError as exc:
+        if args.command == "eval":
+            return _emit_eval_error(args, exc.code)
         print(f"ERROR: {exc}")
         return 2
+    except (YamlLoadError, ValueError) as exc:
+        if args.command == "eval":
+            return _emit_eval_error(args, "evaluation.input_invalid")
+        print(f"ERROR: {exc}")
+        return 2
+    except Exception:
+        if args.command == "eval":
+            return _emit_eval_error(args, "evaluation.internal_error", internal=True)
+        raise
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -95,10 +127,23 @@ def _build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_SUITE,
         help=f"path to safety eval suite YAML (default: {DEFAULT_SUITE})",
     )
-    eval_parser.add_argument(
+    selection_group = eval_parser.add_mutually_exclusive_group()
+    selection_group.add_argument(
         "--cases",
-        default=DEFAULT_CASES,
+        default=None,
         help=f"comma-separated case IDs (default: {DEFAULT_CASES})",
+    )
+    selection_group.add_argument(
+        "--all", action="store_true", dest="select_all", help="run every executable case"
+    )
+    selection_group.add_argument(
+        "--tags", help="comma-separated case tags (OR selection)"
+    )
+    eval_parser.add_argument(
+        "--format",
+        choices=("text", "json", "junit"),
+        default="text",
+        help="report format (default: text)",
     )
     eval_parser.set_defaults(func=_cmd_eval)
 
@@ -226,19 +271,81 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 def _cmd_eval(args: argparse.Namespace) -> int:
     policy = _load_mapping(args.policy, "policy")
     schema = _load_mapping(args.schema, "schema")
-    suite = _load_mapping(args.suite, "suite")
     report = validate_policy(policy, schema)
     if not report.ok:
         _print_report(report, Path(args.policy))
         return 1
 
-    case_ids = [case.strip() for case in args.cases.split(",") if case.strip()]
-    results = run_smoke_eval(policy, suite, case_ids)
-    for result in results:
-        print(f"{result.status} {result.case_id}: {result.message}")
-    passed = sum(1 for result in results if result.ok)
-    print(f"Summary: {passed}/{len(results)} smoke evals passed")
-    return 0 if results and all(result.ok for result in results) else 1
+    requested = _csv_values(args.cases) if args.cases is not None else None
+    tags = _csv_values(args.tags) if args.tags is not None else None
+    suite = load_eval_suite(args.suite)
+    if args.cases is not None and not requested:
+        raise EvalContractError("selection.case_not_found")
+    if args.tags is not None and not tags:
+        raise EvalContractError("selection.no_tag_match")
+    if requested is None and tags is None and not args.select_all:
+        requested = tuple(DEFAULT_CASES.split(","))
+    cases = select_eval_cases(
+        suite,
+        case_ids=requested,
+        tags=tags,
+        select_all=args.select_all,
+    )
+    eval_report = run_eval_cases(cases, {"policy": policy})
+    formatter = {
+        "text": format_eval_text,
+        "json": format_eval_json,
+        "junit": format_eval_junit,
+    }[args.format]
+    print(formatter(eval_report), end="")
+    return 0 if eval_report.ok else 1
+
+
+def _csv_values(value: str) -> tuple[str, ...]:
+    return tuple(item.strip() for item in value.split(",") if item.strip())
+
+
+def _emit_eval_error(
+    args: argparse.Namespace, code: str, *, internal: bool = False
+) -> int:
+    return _emit_eval_error_for_format(args.format, code, internal=internal)
+
+
+def _emit_eval_error_for_format(
+    output_format: str, code: str, *, internal: bool = False
+) -> int:
+    if output_format == "json":
+        print(format_eval_error_json(code), end="")
+    elif output_format == "junit":
+        print(format_eval_error_junit(code, internal=internal), end="")
+    else:
+        print(f"ERROR: {code}", file=sys.stderr)
+    return 2
+
+
+def _requested_eval_machine_format(argv: Sequence[str] | None) -> str | None:
+    """Return a requested eval machine format without interpreting other argv data."""
+
+    values = sys.argv[1:] if argv is None else argv
+    try:
+        if (
+            len(values) > 128
+            or not values
+            or any(type(value) is not str or len(value) > MAX_SCALAR_LENGTH for value in values)
+            or values[0] != "eval"
+        ):
+            return None
+    except (TypeError, IndexError):
+        return None
+    for index, value in enumerate(values):
+        if value.startswith("--format="):
+            candidate = value.split("=", 1)[1]
+            if candidate in {"json", "junit"}:
+                return candidate
+        if index + 1 < len(values) and value == "--format":
+            if values[index + 1] in {"json", "junit"}:
+                return values[index + 1]
+    return None
 
 
 def _cmd_loop_check(args: argparse.Namespace) -> int:

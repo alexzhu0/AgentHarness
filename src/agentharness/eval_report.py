@@ -13,6 +13,7 @@ from .eval_runner import EvalCaseResult, EvalRunReport
 
 
 SCHEMA_ID = "agentharness.eval.report.v1"
+ERROR_SCHEMA_ID = "agentharness.eval.error.v1"
 MAX_REPORT_BYTES = 1024 * 1024
 _IDENTIFIER = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$")
 _XML_ALLOWED_CONTROL_RANGES = ((0x9, 0x9), (0xA, 0xA), (0xD, 0xD))
@@ -128,6 +129,53 @@ def format_eval_junit(report: EvalRunReport) -> str:
     return output
 
 
+def format_eval_error_json(code: str) -> str:
+    """Render one bounded, stable machine error document for the eval CLI."""
+
+    safe_code = _bounded_identifier(code, "report.invalid")
+    try:
+        output = json.dumps(
+            {
+                "schema_id": ERROR_SCHEMA_ID,
+                "result_status": "error",
+                "error": {"code": safe_code},
+            },
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+            allow_nan=False,
+        ) + "\n"
+    except (TypeError, ValueError, UnicodeError, RecursionError):
+        raise EvalContractError("report.invalid") from None
+    _check_output_size(output)
+    return output
+
+
+def format_eval_error_junit(code: str, *, internal: bool = False) -> str:
+    """Render one bounded JUnit error testcase without diagnostic details."""
+
+    safe_code = _bounded_identifier(code, "report.invalid")
+    error_type = "internal" if internal else "contract"
+    root = ElementTree.Element(
+        "testsuite",
+        {
+            "name": "agentharness.eval",
+            "tests": "1",
+            "failures": "0",
+            "errors": "1",
+        },
+    )
+    testcase = ElementTree.SubElement(
+        root, "testcase", {"name": "agentharness.eval.error"}
+    )
+    ElementTree.SubElement(
+        testcase, "error", {"type": error_type, "message": safe_code}
+    )
+    output = ElementTree.tostring(root, encoding="unicode", short_empty_elements=True) + "\n"
+    _check_output_size(output)
+    return output
+
+
 def _normalize_report(report: EvalRunReport) -> _NormalizedReport:
     """Copy only bounded, report-owned fields into a format-neutral shape."""
 
@@ -209,4 +257,10 @@ def _check_output_size(output: str) -> None:
         raise EvalContractError("report.too_large")
 
 
-__all__ = ["format_eval_text", "format_eval_json", "format_eval_junit"]
+__all__ = [
+    "format_eval_text",
+    "format_eval_json",
+    "format_eval_junit",
+    "format_eval_error_json",
+    "format_eval_error_junit",
+]
