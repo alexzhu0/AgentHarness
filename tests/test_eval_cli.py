@@ -150,6 +150,51 @@ class EvalCliTests(unittest.TestCase):
         self.assertEqual("", stderr)
         self.assertEqual("selection.case_not_found", json.loads(stdout)["error"]["code"])
 
+    def test_invalid_policy_is_safe_text_contract_error(self) -> None:
+        with _temporary_suite("version: invalid\n") as path:
+            code, stdout, stderr = _run_cli(["eval", "--policy", str(path)])
+
+        self.assertEqual(2, code)
+        self.assertEqual("", stdout)
+        self.assertEqual("ERROR: policy.invalid\n", stderr)
+        self.assertNotIn(str(path), stderr)
+
+    def test_invalid_policy_is_safe_json_contract_error(self) -> None:
+        with _temporary_suite("version: invalid\n") as path:
+            code, stdout, stderr = _run_cli(
+                ["eval", "--policy", str(path), "--format", "json"]
+            )
+
+        self.assertEqual(2, code)
+        self.assertEqual("", stderr)
+        self.assertEqual(
+            {
+                "schema_id": "agentharness.eval.error.v1",
+                "result_status": "error",
+                "error": {"code": "policy.invalid"},
+            },
+            json.loads(stdout),
+        )
+        self.assertNotIn(str(path), stdout)
+
+    def test_invalid_policy_is_safe_junit_contract_error(self) -> None:
+        with _temporary_suite("version: invalid\n") as path:
+            code, stdout, stderr = _run_cli(
+                ["eval", "--policy", str(path), "--format", "junit"]
+            )
+
+        self.assertEqual(2, code)
+        self.assertEqual("", stderr)
+        root = ElementTree.fromstring(stdout)
+        self.assertEqual("agentharness.eval", root.attrib["name"])
+        self.assertEqual("1", root.attrib["tests"])
+        self.assertEqual("1", root.attrib["errors"])
+        error = root.find("./testcase/error")
+        self.assertIsNotNone(error)
+        self.assertEqual("contract", error.attrib["type"])
+        self.assertEqual("policy.invalid", error.attrib["message"])
+        self.assertNotIn(str(path), stdout)
+
     def test_duplicate_suite_ids_fail_closed_without_path_disclosure(self) -> None:
         suite = _suite_with_case("PI-001") + _case_yaml("PI-001")
         with _temporary_suite(suite) as path:

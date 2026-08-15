@@ -273,8 +273,7 @@ def _cmd_eval(args: argparse.Namespace) -> int:
     schema = _load_mapping(args.schema, "schema")
     report = validate_policy(policy, schema)
     if not report.ok:
-        _print_report(report, Path(args.policy))
-        return 1
+        return _emit_eval_error(args, "policy.invalid")
 
     requested = _csv_values(args.cases) if args.cases is not None else None
     tags = _csv_values(args.tags) if args.tags is not None else None
