@@ -255,7 +255,26 @@ AgentHarness includes a small local CLI for keeping the YAML assets honest:
 ./agentharness pi methodology-permit-v1 < request.json
 ```
 
-The eval command is a mock policy smoke runner. It does not execute a model; it checks whether the current policy contains enforceable controls for the first prompt-injection, prompt-disclosure and secret-handling safety cases.
+### Declarative Safety Evaluations
+
+The local evaluator has a compatibility default for the original smoke cases,
+plus explicit selectors and deterministic machine-readable reports:
+
+```bash
+./agentharness eval
+./agentharness eval --all
+./agentharness eval --tags secret-handling
+./agentharness eval --all --format json
+./agentharness eval --tags secret-handling --format junit
+```
+
+Evaluators and assertion operations are finite Python registries. Suite YAML is
+data only and cannot execute code. The command involves no model, network,
+tool, or runtime authorization; it evaluates policy controls against bounded
+local fixtures. Only cases that carry the complete declarative contract
+(`title`, `tags`, `evaluator`, `input`, `assertions`, and `pass_message`) are
+executable. Narrative-only suite cases remain documentation rather than eval
+workloads.
 
 The loop check command validates an existing file-bus directory against the
 loop protocol. It does not create, mutate, schedule, or execute tasks.

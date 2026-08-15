@@ -5,7 +5,9 @@ from __future__ import annotations
 from contextlib import redirect_stderr, redirect_stdout
 from io import StringIO
 import json
+import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 from unittest import mock
@@ -285,6 +287,24 @@ class EvalCliTests(unittest.TestCase):
         self.assertIsNotNone(error)
         self.assertEqual("contract", error.attrib["type"])
         self.assertEqual("report.invalid_xml_text", error.attrib["message"])
+
+
+class EvalCliEndToEndTests(unittest.TestCase):
+    def test_installed_style_entry_point_emits_json_without_importing_test_helpers(
+        self,
+    ) -> None:
+        completed = subprocess.run(
+            [str(ROOT / "agentharness"), "eval", "--all", "--format", "json"],
+            cwd=ROOT,
+            text=True,
+            capture_output=True,
+            check=False,
+            env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        )
+
+        self.assertEqual(0, completed.returncode, completed.stderr)
+        self.assertEqual(6, json.loads(completed.stdout)["summary"]["total"])
+        self.assertEqual("", completed.stderr)
 
 
 def _run_cli(argv: list[str]) -> tuple[int, str, str]:
