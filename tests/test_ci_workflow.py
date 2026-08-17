@@ -127,6 +127,31 @@ class CiWorkflowTests(unittest.TestCase):
         )
         self.assertNotIn("continue-on-error", _serialized_verify_job(self.workflow))
 
+    def test_readme_documents_ci_contract(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        ci_section = readme.split("## Continuous Integration", 1)[1].split("\n## ", 1)[0]
+        ci_lines = ci_section.splitlines()
+        for value in (
+            "actions/workflows/ci.yml",
+            "Python 3.10",
+            "Python 3.11",
+            "Python 3.12",
+            "pull requests and pushes to `main`",
+            "policy validation",
+            "./agentharness loop check examples/agent_bus",
+            "./agentharness loop check examples/agent_bus_adapter_registry",
+            "python -m unittest discover -s tests -q",
+            "failure-only artifacts",
+            "14 days",
+            "./agentharness eval --all --format junit",
+            "./agentharness eval --all --format json",
+            "CI is not runtime authorization and does not execute Agent Runtime tools.",
+        ):
+            if value.startswith("./agentharness loop check "):
+                self.assertIn(value, ci_lines)
+            else:
+                self.assertIn(value, ci_section)
+
 
 if __name__ == "__main__":
     unittest.main()

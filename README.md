@@ -276,6 +276,33 @@ local fixtures. Only cases that carry the complete declarative contract
 executable. Narrative-only suite cases remain documentation rather than eval
 workloads.
 
+## Continuous Integration
+
+[![CI](https://github.com/alexzhu0/AgentHarness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alexzhu0/AgentHarness/actions/workflows/ci.yml)
+
+The CI workflow runs on pull requests and pushes to `main`. It verifies the
+repository on a Python 3.10, Python 3.11, and Python 3.12 matrix, including
+policy validation, all-case evaluations, the `examples/agent_bus` and
+`examples/agent_bus_adapter_registry` loop fixtures, the full unittest suite
+(`python -m unittest discover -s tests -q`), and a whitespace check.
+
+The CI loop checks are:
+
+```bash
+./agentharness loop check examples/agent_bus
+./agentharness loop check examples/agent_bus_adapter_registry
+```
+
+When verification fails, CI retains JUnit and JSON all-case evaluation reports
+as failure-only artifacts for 14 days. To generate those reports locally, run:
+
+```bash
+./agentharness eval --all --format junit
+./agentharness eval --all --format json
+```
+
+CI is not runtime authorization and does not execute Agent Runtime tools.
+
 The loop check command validates an existing file-bus directory against the
 loop protocol. It does not create, mutate, schedule, or execute tasks.
 
