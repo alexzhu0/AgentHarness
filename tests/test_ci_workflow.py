@@ -66,6 +66,7 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertEqual({"pull_request", "push"}, set(self.workflow["on"]))
         self.assertEqual({"branches": ["main"]}, self.workflow["on"]["push"])
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
+        self.assertEqual({"verify"}, set(self.workflow["jobs"]))
         job = self.workflow["jobs"]["verify"]
         self.assertEqual("ubuntu-latest", job["runs-on"])
         self.assertNotIn("permissions", job)
