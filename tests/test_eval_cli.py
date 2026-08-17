@@ -117,6 +117,35 @@ class EvalCliTests(unittest.TestCase):
                 self.assertNotIn(secret, stdout + stderr)
                 _assert_argument_error(self, output_format, stdout, stderr)
 
+    def test_eval_rejects_abbreviated_format_without_leaking_values(self) -> None:
+        unsafe_values = "/private/policy.yaml,sk-test-credential"
+
+        code, stdout, stderr = _run_cli(
+            ["eval", "--form", "json", "--cases", unsafe_values]
+        )
+
+        self.assertEqual(2, code)
+        self.assertNotIn("/private/policy.yaml", stdout + stderr)
+        self.assertNotIn("sk-test-credential", stdout + stderr)
+        _assert_argument_error(self, "text", stdout, stderr)
+
+    def test_exact_json_format_still_emits_machine_argument_error(self) -> None:
+        code, stdout, stderr = _run_cli(
+            [
+                "eval",
+                "--format",
+                "json",
+                "--unknown",
+                "/private/policy.yaml",
+                "sk-test-credential",
+            ]
+        )
+
+        self.assertEqual(2, code)
+        self.assertNotIn("/private/policy.yaml", stdout + stderr)
+        self.assertNotIn("sk-test-credential", stdout + stderr)
+        _assert_argument_error(self, "json", stdout, stderr)
+
     def test_overlong_and_over_count_eval_argv_fail_without_argparse_output(self) -> None:
         cases = (
             (["eval", "--cases", "x" * 4097], "text"),

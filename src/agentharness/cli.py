@@ -116,7 +116,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     validate_parser.set_defaults(func=_cmd_validate)
 
-    eval_parser = subparsers.add_parser("eval", help="run supported mock policy smoke evals")
+    eval_parser = subparsers.add_parser(
+        "eval",
+        help="run supported mock policy smoke evals",
+        allow_abbrev=False,
+    )
     eval_parser.add_argument(
         "--policy",
         default=DEFAULT_POLICY,
