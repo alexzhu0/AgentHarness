@@ -280,26 +280,26 @@ workloads.
 
 [![CI](https://github.com/alexzhu0/AgentHarness/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/alexzhu0/AgentHarness/actions/workflows/ci.yml)
 
-The CI workflow runs on pull requests and pushes to `main`. It verifies the
-repository on a Python 3.10, Python 3.11, and Python 3.12 matrix, including
-policy validation, all-case evaluations, the `examples/agent_bus` and
-`examples/agent_bus_adapter_registry` loop fixtures, the full unittest suite
-(`python -m unittest discover -s tests -q`), and a whitespace check.
-
-The CI loop checks are:
+The CI workflow runs on pull requests and pushes to `main`, using a Python 3.10,
+Python 3.11, and Python 3.12 matrix. Reproduce its local verification sequence
+with:
 
 ```bash
-./agentharness loop check examples/agent_bus
-./agentharness loop check examples/agent_bus_adapter_registry
+python -m pip install -e .
+PYTHONDONTWRITEBYTECODE=1 ./agentharness validate examples/agent_policy.example.yaml
+mkdir -p artifacts
+PYTHONDONTWRITEBYTECODE=1 ./agentharness eval --all --format junit > artifacts/eval-results.xml
+PYTHONDONTWRITEBYTECODE=1 ./agentharness eval --all --format json > artifacts/eval-results.json
+PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus
+PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus_adapter_registry
+PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -q
+git fetch origin main
+git diff --check origin/main...HEAD
 ```
 
-When verification fails, CI retains JUnit and JSON all-case evaluation reports
-as failure-only artifacts for 14 days. To generate those reports locally, run:
-
-```bash
-./agentharness eval --all --format junit
-./agentharness eval --all --format json
-```
+Failure-only 14-day report artifacts are retained when the report-generation
+step has written both files. Missing files make upload fail, so artifact
+retention never turns a failure into a pass.
 
 CI is not runtime authorization and does not execute Agent Runtime tools.
 

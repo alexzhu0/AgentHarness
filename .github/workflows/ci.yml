@@ -16,6 +16,8 @@ jobs:
       PYTHONDONTWRITEBYTECODE: "1"
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
@@ -39,8 +41,21 @@ jobs:
         run: ./agentharness loop check examples/agent_bus_adapter_registry
       - name: Run unit tests
         run: python -m unittest discover -s tests -q
-      - name: Check whitespace
-        run: git diff --check
+      - name: Check submitted whitespace
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_BEFORE: ${{ github.event.before }}
+          EVENT_AFTER: ${{ github.sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "pull_request" ]; then
+            git diff --check "$PR_BASE...$PR_HEAD"
+          elif [ "$EVENT_BEFORE" = "0000000000000000000000000000000000000000" ]; then
+            git diff --check "$(git hash-object -t tree /dev/null)" "$EVENT_AFTER"
+          else
+            git diff --check "$EVENT_BEFORE..$EVENT_AFTER"
+          fi
       - name: Upload evaluation reports on failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4

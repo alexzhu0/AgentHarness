@@ -7,150 +7,161 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
+WORKFLOW_PATH = ROOT / ".github/workflows/ci.yml"
+SUBMITTED_WHITESPACE_SCRIPT = """if [ \"$EVENT_NAME\" = \"pull_request\" ]; then
+  git diff --check \"$PR_BASE...$PR_HEAD\"
+elif [ \"$EVENT_BEFORE\" = \"0000000000000000000000000000000000000000\" ]; then
+  git diff --check \"$(git hash-object -t tree /dev/null)\" \"$EVENT_AFTER\"
+else
+  git diff --check \"$EVENT_BEFORE..$EVENT_AFTER\"
+fi
+"""
+LOCAL_CI_SEQUENCE = """python -m pip install -e .
+PYTHONDONTWRITEBYTECODE=1 ./agentharness validate examples/agent_policy.example.yaml
+mkdir -p artifacts
+PYTHONDONTWRITEBYTECODE=1 ./agentharness eval --all --format junit > artifacts/eval-results.xml
+PYTHONDONTWRITEBYTECODE=1 ./agentharness eval --all --format json > artifacts/eval-results.json
+PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus
+PYTHONDONTWRITEBYTECODE=1 ./agentharness loop check examples/agent_bus_adapter_registry
+PYTHONDONTWRITEBYTECODE=1 python -m unittest discover -s tests -q
+git fetch origin main
+git diff --check origin/main...HEAD
+"""
 
 
 def _load_workflow(path):
     return yaml.load(path.read_text(encoding="utf-8"), Loader=yaml.BaseLoader)
 
 
-def _verification_steps(workflow):
-    return [
-        step
-        for step in workflow["jobs"]["verify"]["steps"]
-        if "run" in step and step.get("name") != "Install package"
-    ]
-
-
-def _run_commands(workflow):
-    commands = []
-    for step in _verification_steps(workflow):
-        if step["name"] == "Generate evaluation reports":
-            commands.append(
-                "\n".join(
-                    line.split(" || ", 1)[0]
-                    for line in step["run"].splitlines()
-                    if line == "mkdir -p artifacts" or line.startswith("./agentharness eval")
-                )
-            )
-        else:
-            commands.append(step["run"])
-    return commands
-
-
-def _artifact_step(workflow):
-    return next(
-        step
-        for step in workflow["jobs"]["verify"]["steps"]
-        if step.get("uses") == "actions/upload-artifact@v4"
-    )
-
-
-def _verification_commands(run_commands):
-    return [
-        line
-        for command in run_commands
-        for line in command.splitlines()
-        if line.strip() and line.strip() != "mkdir -p artifacts"
-    ]
-
-
-def _serialized_verify_job(workflow):
-    return yaml.dump(workflow["jobs"]["verify"])
+def _serialized_values(value):
+    if isinstance(value, dict):
+        for item in value.values():
+            yield from _serialized_values(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from _serialized_values(item)
+    else:
+        yield str(value)
 
 
 class CiWorkflowTests(unittest.TestCase):
     def setUp(self):
-        self.workflow = _load_workflow(ROOT / ".github/workflows/ci.yml")
+        self.workflow = _load_workflow(WORKFLOW_PATH)
+        self.job = self.workflow["jobs"]["verify"]
+        self.steps = self.job["steps"]
 
-    def test_trigger_permissions_and_matrix(self):
-        self.assertEqual({"pull_request", "push"}, set(self.workflow["on"]))
-        self.assertEqual({"branches": ["main"]}, self.workflow["on"]["push"])
+    def test_workflow_has_only_the_closed_ci_structure(self):
+        self.assertEqual(["ci.yml"], sorted(path.name for path in WORKFLOW_PATH.parent.iterdir()))
+        self.assertEqual({"name", "on", "permissions", "jobs"}, set(self.workflow))
+        self.assertEqual("CI", self.workflow["name"])
+        self.assertEqual(
+            {"pull_request": "", "push": {"branches": ["main"]}}, self.workflow["on"]
+        )
         self.assertEqual({"contents": "read"}, self.workflow["permissions"])
         self.assertEqual({"verify"}, set(self.workflow["jobs"]))
-        job = self.workflow["jobs"]["verify"]
-        self.assertEqual("ubuntu-latest", job["runs-on"])
-        self.assertNotIn("permissions", job)
-        self.assertEqual(["3.10", "3.11", "3.12"], job["strategy"]["matrix"]["python-version"])
-        self.assertEqual("1", job["env"]["PYTHONDONTWRITEBYTECODE"])
-
-    def test_setup_and_artifact_contract(self):
-        steps = self.workflow["jobs"]["verify"]["steps"]
-        self.assertEqual("actions/checkout@v4", steps[0]["uses"])
-        self.assertEqual("actions/setup-python@v5", steps[1]["uses"])
-        self.assertEqual("${{ matrix.python-version }}", steps[1]["with"]["python-version"])
+        self.assertEqual({"runs-on", "strategy", "env", "steps"}, set(self.job))
+        self.assertEqual("ubuntu-latest", self.job["runs-on"])
         self.assertEqual(
-            "python -m pip install --upgrade pip\npython -m pip install -e .\n",
-            steps[2]["run"],
+            {
+                "fail-fast": "false",
+                "matrix": {"python-version": ["3.10", "3.11", "3.12"]},
+            },
+            self.job["strategy"],
         )
-        upload = _artifact_step(self.workflow)
-        self.assertEqual("${{ failure() }}", upload["if"])
-        self.assertEqual("agentharness-eval-${{ matrix.python-version }}", upload["with"]["name"])
-        self.assertEqual(
-            "artifacts/eval-results.xml\nartifacts/eval-results.json\n",
-            upload["with"]["path"],
-        )
-        self.assertEqual("14", upload["with"]["retention-days"])
-        self.assertEqual("error", upload["with"]["if-no-files-found"])
+        self.assertEqual({"PYTHONDONTWRITEBYTECODE": "1"}, self.job["env"])
 
-    def test_evaluation_reports_are_both_written_before_failure(self):
-        report_step = next(
-            step
-            for step in self.workflow["jobs"]["verify"]["steps"]
-            if step.get("name") == "Generate evaluation reports"
-        )
-        self.assertEqual(
-            "\n".join(
-                [
-                    "mkdir -p artifacts",
-                    "junit_status=0",
-                    "./agentharness eval --all --format junit > artifacts/eval-results.xml || junit_status=$?",
-                    "json_status=0",
-                    "./agentharness eval --all --format json > artifacts/eval-results.json || json_status=$?",
-                    "test \"$junit_status\" -eq 0 -a \"$json_status\" -eq 0",
-                ]
-            ) + "\n",
-            report_step["run"],
-        )
-
-    def test_required_commands_have_exact_order_and_no_suppression(self):
+    def test_steps_actions_and_security_surface_are_closed(self):
         self.assertEqual(
             [
-                "./agentharness validate examples/agent_policy.example.yaml",
-                "./agentharness eval --all --format junit > artifacts/eval-results.xml",
-                "./agentharness eval --all --format json > artifacts/eval-results.json",
-                "./agentharness loop check examples/agent_bus",
-                "./agentharness loop check examples/agent_bus_adapter_registry",
-                "python -m unittest discover -s tests -q",
-                "git diff --check",
+                "actions/checkout@v4",
+                "actions/setup-python@v5",
+                "Install package",
+                "Validate policy",
+                "Generate evaluation reports",
+                "Check loop bus fixture",
+                "Check adapter-registry loop fixture",
+                "Run unit tests",
+                "Check submitted whitespace",
+                "actions/upload-artifact@v4",
             ],
-            _verification_commands(_run_commands(self.workflow)),
+            [step.get("uses", step.get("name")) for step in self.steps],
         )
-        self.assertNotIn("continue-on-error", _serialized_verify_job(self.workflow))
+        self.assertEqual(
+            ["actions/checkout@v4", "actions/setup-python@v5", "actions/upload-artifact@v4"],
+            [step["uses"] for step in self.steps if "uses" in step],
+        )
+        self.assertEqual({"uses", "with"}, set(self.steps[0]))
+        self.assertEqual({"fetch-depth": "0"}, self.steps[0]["with"])
+        self.assertEqual({"uses", "with"}, set(self.steps[1]))
+        self.assertEqual("${{ matrix.python-version }}", self.steps[1]["with"]["python-version"])
+        for step in self.steps[2:8]:
+            self.assertEqual({"name", "run"}, set(step))
+        self.assertEqual({"name", "env", "run"}, set(self.steps[8]))
+        self.assertEqual({"name", "if", "uses", "with"}, set(self.steps[-1]))
+        self.assertEqual("${{ failure() }}", self.steps[-1]["if"])
+        self.assertEqual("agentharness-eval-${{ matrix.python-version }}", self.steps[-1]["with"]["name"])
+        self.assertEqual("14", self.steps[-1]["with"]["retention-days"])
+        self.assertEqual("error", self.steps[-1]["with"]["if-no-files-found"])
+        forbidden = {"environment", "services", "container", "permissions", "continue-on-error"}
+        self.assertFalse(forbidden.intersection(self.job))
+        for step in self.steps:
+            self.assertFalse(forbidden.intersection(step))
+        self.assertFalse(any("secrets." in value for value in _serialized_values(self.workflow)))
 
-    def test_readme_documents_ci_contract(self):
+    def test_verification_commands_and_whitespace_ranges_are_exact(self):
+        self.assertEqual(
+            "python -m pip install --upgrade pip\npython -m pip install -e .\n",
+            self.steps[2]["run"],
+        )
+        self.assertEqual(
+            "./agentharness validate examples/agent_policy.example.yaml",
+            self.steps[3]["run"],
+        )
+        self.assertEqual(
+            """mkdir -p artifacts
+junit_status=0
+./agentharness eval --all --format junit > artifacts/eval-results.xml || junit_status=$?
+json_status=0
+./agentharness eval --all --format json > artifacts/eval-results.json || json_status=$?
+test \"$junit_status\" -eq 0 -a \"$json_status\" -eq 0
+""",
+            self.steps[4]["run"],
+        )
+        self.assertEqual("./agentharness loop check examples/agent_bus", self.steps[5]["run"])
+        self.assertEqual(
+            "./agentharness loop check examples/agent_bus_adapter_registry", self.steps[6]["run"]
+        )
+        self.assertEqual("python -m unittest discover -s tests -q", self.steps[7]["run"])
+        self.assertEqual(
+            {
+                "EVENT_NAME": "${{ github.event_name }}",
+                "EVENT_BEFORE": "${{ github.event.before }}",
+                "EVENT_AFTER": "${{ github.sha }}",
+                "PR_BASE": "${{ github.event.pull_request.base.sha }}",
+                "PR_HEAD": "${{ github.event.pull_request.head.sha }}",
+            },
+            self.steps[8].get("env"),
+        )
+        self.assertEqual(SUBMITTED_WHITESPACE_SCRIPT, self.steps[8]["run"])
+
+    def test_readme_documents_the_copy_paste_ci_sequence(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         ci_section = readme.split("## Continuous Integration", 1)[1].split("\n## ", 1)[0]
-        ci_lines = ci_section.splitlines()
-        for value in (
-            "actions/workflows/ci.yml",
-            "Python 3.10",
-            "Python 3.11",
-            "Python 3.12",
-            "pull requests and pushes to `main`",
-            "policy validation",
-            "./agentharness loop check examples/agent_bus",
-            "./agentharness loop check examples/agent_bus_adapter_registry",
-            "python -m unittest discover -s tests -q",
-            "failure-only artifacts",
-            "14 days",
-            "./agentharness eval --all --format junit",
-            "./agentharness eval --all --format json",
-            "CI is not runtime authorization and does not execute Agent Runtime tools.",
-        ):
-            if value.startswith("./agentharness loop check "):
-                self.assertIn(value, ci_lines)
-            else:
-                self.assertIn(value, ci_section)
+        self.assertIn("actions/workflows/ci.yml", ci_section)
+        self.assertIn("pull requests and pushes to `main`", ci_section)
+        for version in ("Python 3.10", "Python 3.11", "Python 3.12"):
+            self.assertIn(version, ci_section)
+        self.assertIn("```bash\n" + LOCAL_CI_SEQUENCE + "```", ci_section)
+        normalized_ci_section = " ".join(ci_section.split())
+        self.assertIn(
+            "Failure-only 14-day report artifacts are retained when the report-generation step has written both files",
+            normalized_ci_section,
+        )
+        self.assertIn(
+            "Missing files make upload fail, so artifact retention never turns a failure into a pass.",
+            normalized_ci_section,
+        )
+        self.assertIn("CI is not runtime authorization and does not execute Agent Runtime tools.", ci_section)
 
 
 if __name__ == "__main__":
