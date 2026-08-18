@@ -56,6 +56,11 @@ jobs:
           else
             git diff --check "$EVENT_BEFORE..$EVENT_AFTER"
           fi
+      - name: Check evaluation reports exist on failure
+        if: ${{ failure() }}
+        run: |
+          test -f artifacts/eval-results.xml
+          test -f artifacts/eval-results.json
       - name: Upload evaluation reports on failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@v4

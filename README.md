@@ -297,9 +297,9 @@ git fetch origin main
 git diff --check origin/main...HEAD
 ```
 
-Failure-only 14-day report artifacts are retained when the report-generation
-step has written both files. Missing files make upload fail, so artifact
-retention never turns a failure into a pass.
+Failure-only 14-day report artifacts are retained when both reports were
+generated. If either report is missing, CI fails a missing-evidence check before
+upload.
 
 CI is not runtime authorization and does not execute Agent Runtime tools.
 

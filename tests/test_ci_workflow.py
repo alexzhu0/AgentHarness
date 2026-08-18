@@ -82,6 +82,7 @@ class CiWorkflowTests(unittest.TestCase):
                 "Check adapter-registry loop fixture",
                 "Run unit tests",
                 "Check submitted whitespace",
+                "Check evaluation reports exist on failure",
                 "actions/upload-artifact@v4",
             ],
             [step.get("uses", step.get("name")) for step in self.steps],
@@ -93,15 +94,29 @@ class CiWorkflowTests(unittest.TestCase):
         self.assertEqual({"uses", "with"}, set(self.steps[0]))
         self.assertEqual({"fetch-depth": "0"}, self.steps[0]["with"])
         self.assertEqual({"uses", "with"}, set(self.steps[1]))
-        self.assertEqual("${{ matrix.python-version }}", self.steps[1]["with"]["python-version"])
+        self.assertEqual(
+            {"python-version": "${{ matrix.python-version }}"}, self.steps[1]["with"]
+        )
         for step in self.steps[2:8]:
             self.assertEqual({"name", "run"}, set(step))
         self.assertEqual({"name", "env", "run"}, set(self.steps[8]))
+        self.assertEqual({"name", "if", "run"}, set(self.steps[9]))
+        self.assertEqual("${{ failure() }}", self.steps[9]["if"])
+        self.assertEqual(
+            "test -f artifacts/eval-results.xml\ntest -f artifacts/eval-results.json\n",
+            self.steps[9].get("run"),
+        )
         self.assertEqual({"name", "if", "uses", "with"}, set(self.steps[-1]))
         self.assertEqual("${{ failure() }}", self.steps[-1]["if"])
-        self.assertEqual("agentharness-eval-${{ matrix.python-version }}", self.steps[-1]["with"]["name"])
-        self.assertEqual("14", self.steps[-1]["with"]["retention-days"])
-        self.assertEqual("error", self.steps[-1]["with"]["if-no-files-found"])
+        self.assertEqual(
+            {
+                "name": "agentharness-eval-${{ matrix.python-version }}",
+                "path": "artifacts/eval-results.xml\nartifacts/eval-results.json\n",
+                "retention-days": "14",
+                "if-no-files-found": "error",
+            },
+            self.steps[-1]["with"],
+        )
         forbidden = {"environment", "services", "container", "permissions", "continue-on-error"}
         self.assertFalse(forbidden.intersection(self.job))
         for step in self.steps:
@@ -143,6 +158,10 @@ test \"$junit_status\" -eq 0 -a \"$json_status\" -eq 0
             self.steps[8].get("env"),
         )
         self.assertEqual(SUBMITTED_WHITESPACE_SCRIPT, self.steps[8]["run"])
+        self.assertEqual(
+            "test -f artifacts/eval-results.xml\ntest -f artifacts/eval-results.json\n",
+            self.steps[9].get("run"),
+        )
 
     def test_readme_documents_the_copy_paste_ci_sequence(self):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
@@ -154,11 +173,11 @@ test \"$junit_status\" -eq 0 -a \"$json_status\" -eq 0
         self.assertIn("```bash\n" + LOCAL_CI_SEQUENCE + "```", ci_section)
         normalized_ci_section = " ".join(ci_section.split())
         self.assertIn(
-            "Failure-only 14-day report artifacts are retained when the report-generation step has written both files",
+            "Failure-only 14-day report artifacts are retained when both reports were generated.",
             normalized_ci_section,
         )
         self.assertIn(
-            "Missing files make upload fail, so artifact retention never turns a failure into a pass.",
+            "If either report is missing, CI fails a missing-evidence check before upload.",
             normalized_ci_section,
         )
         self.assertIn("CI is not runtime authorization and does not execute Agent Runtime tools.", ci_section)
